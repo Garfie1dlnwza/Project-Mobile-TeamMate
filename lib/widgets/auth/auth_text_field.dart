@@ -12,7 +12,7 @@ class AuthTextField extends StatelessWidget {
   final TextInputType keyboardType;
 
   const AuthTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     required this.prefixIcon,
@@ -21,7 +21,7 @@ class AuthTextField extends StatelessWidget {
     this.onTogglePassword,
     this.validator,
     this.keyboardType = TextInputType.text,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

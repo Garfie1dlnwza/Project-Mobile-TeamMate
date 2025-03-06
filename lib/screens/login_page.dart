@@ -1,25 +1,29 @@
+// lib/screens/login_page.dart
 import 'package:flutter/material.dart';
-import 'package:teammate/api/user_api.dart';
 import 'package:teammate/models/user_model.dart';
 import 'package:teammate/screens/register_page.dart';
-import 'package:teammate/widgets/navbar.dart';
+import 'package:teammate/services/auth_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
 import 'package:teammate/utils/validators.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 import 'package:teammate/widgets/common/app_logo.dart';
+import 'package:teammate/widgets/navbar.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final Function(UserModel) onLogin;
+  final VoidCallback onThemeToggle;
+
+  const LoginPage({Key? key, required this.onLogin, required this.onThemeToggle}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage>
-  with SingleTickerProviderStateMixin {
-  final UserApi _userApi = UserApi();
+    with SingleTickerProviderStateMixin {
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -67,7 +71,7 @@ class _LoginPageState extends State<LoginPage>
     });
 
     try {
-      UserModel? user = await _userApi.signInWithEmail(
+      UserModel? user = await _authService.signInWithEmail(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
@@ -75,29 +79,33 @@ class _LoginPageState extends State<LoginPage>
       if (user == null) {
         setState(() {
           _errorMessage = 'Invalid email or password';
+          _isLoading = false;
         });
         return;
       }
 
-      // Handle successful login
+      // Call the onLogin callback
+      widget.onLogin(user);
+
+      // Navigate to Navbar
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => Navbar(user: user)),
+          MaterialPageRoute(
+            builder: (context) => Navbar(
+              user: user,
+              onThemeToggle: widget.onThemeToggle,
+            ),
+          ),
           (route) => false,
         );
       }
     } catch (e) {
       setState(() {
         _errorMessage = 'An error occurred. Please try again.';
+        _isLoading = false;
       });
       debugPrint("Error in _login: $e");
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
     }
   }
 
@@ -127,7 +135,6 @@ class _LoginPageState extends State<LoginPage>
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(100),
-                    // topRight: Radius.circular(50),
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -154,7 +161,7 @@ class _LoginPageState extends State<LoginPage>
                           ),
                           const Center(
                             child: Padding(
-                              padding: EdgeInsets.fromLTRB(0, 2, 100,20),
+                              padding: EdgeInsets.fromLTRB(0, 2, 100, 20),
                               child: Text(
                                 'Login to your account',
                                 style: AppTextStyles.subheading,
@@ -249,9 +256,10 @@ class _LoginPageState extends State<LoginPage>
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder:
-                                                (context) =>
-                                                    const RegisterPage(),
+                                            builder: (context) => RegisterPage(
+                                              onRegister: widget.onLogin,
+                                              onThemeToggle: widget.onThemeToggle,
+                                            ),
                                           ),
                                         );
                                       },
@@ -266,7 +274,6 @@ class _LoginPageState extends State<LoginPage>
                                   ],
                                 ),
                                 const SizedBox(height: 20),
-                                // Social login options could be added here
                               ],
                             ),
                           ),

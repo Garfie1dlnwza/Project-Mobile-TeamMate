@@ -1,17 +1,24 @@
-import 'package:firebase_auth/firebase_auth.dart';
+// lib/screens/register_page.dart
 import 'package:flutter/material.dart';
-import 'package:teammate/api/user_api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/models/user_model.dart';
 import 'package:teammate/screens/login_page.dart';
+import 'package:teammate/services/auth_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
-import 'package:teammate/widgets/common/app_logo.dart';
 import 'package:teammate/widgets/navbar.dart';
-import 'package:teammate/widgets/auth/auth_button.dart'; // Import AuthButton
-import 'package:teammate/widgets/auth/auth_text_field.dart'; // Import AuthTextField
+import 'package:teammate/widgets/auth/auth_button.dart';
+import 'package:teammate/widgets/auth/auth_text_field.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final Function(UserModel) onRegister;
+  final VoidCallback onThemeToggle;
+
+  const RegisterPage({
+    Key? key, 
+    required this.onRegister, 
+    required this.onThemeToggle
+  }) : super(key: key);
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -19,13 +26,13 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -53,9 +60,9 @@ class _RegisterPageState extends State<RegisterPage> {
       String fullName =
           "${_nameController.text.trim()} ${_surnameController.text.trim()}";
 
-      // Create UserModel object without uid (will be assigned after auth)
+      // Create UserModel object
       UserModel newUser = UserModel(
-        id: "", // Temporary placeholder, will be updated in API
+        id: "", // Temporary placeholder, will be updated in AuthService
         name: fullName,
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(), // Will not be stored in Firestore
@@ -64,14 +71,22 @@ class _RegisterPageState extends State<RegisterPage> {
         projects: [],
       );
 
-      // Call UserApi to register the account
-      UserModel? user = await UserApi().registerAccount(userModel: newUser);
+      // Register account using AuthService
+      UserModel? user = await _authService.registerUser(userModel: newUser);
 
       if (user != null && mounted) {
-        // If the user is successfully added to Firestore, navigate to Navbar
+        // Call the onRegister callback
+        widget.onRegister(user);
+        
+        // Navigate to Navbar
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Navbar(user: user)),
+          MaterialPageRoute(
+            builder: (context) => Navbar(
+              user: user,
+              onThemeToggle: widget.onThemeToggle,
+            ),
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -109,12 +124,12 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Column(
           children: [
             Expanded(
-              
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
+                    // Add your border radius here if needed
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -232,6 +247,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               controller: _emailController,
                               label: "Email",
                               prefixIcon: Icons.email,
+                              keyboardType: TextInputType.emailAddress,
                               validator: (value) {
                                 if (value == null || value.isEmpty) {
                                   return 'Please enter an email';
@@ -322,7 +338,10 @@ class _RegisterPageState extends State<RegisterPage> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const LoginPage(),
+                                    builder: (context) => LoginPage(
+                                      onLogin: widget.onRegister,
+                                      onThemeToggle: widget.onThemeToggle,
+                                    ),
                                   ),
                                 );
                               },
