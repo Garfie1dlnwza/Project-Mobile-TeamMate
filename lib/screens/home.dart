@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/models/user_model.dart';
+import 'package:teammate/widgets/common/header_bar.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required UserModel user});
+  final String title;
+  HomePage({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Icon(Icons.home_outlined),
-    );
+    return Scaffold(appBar: Headbar(title: title));
   }
 }

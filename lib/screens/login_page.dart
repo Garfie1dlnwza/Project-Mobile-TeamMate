@@ -9,7 +9,7 @@ import 'package:teammate/utils/validators.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 import 'package:teammate/widgets/common/app_logo.dart';
-import 'package:teammate/widgets/navbar.dart';
+import 'package:teammate/widgets/common/navbar.dart';
 
 class LoginPage extends StatefulWidget {
   final Function(UserModel) onLogin;
@@ -93,7 +93,6 @@ class _LoginPageState extends State<LoginPage>
           context,
           MaterialPageRoute(
             builder: (context) => Navbar(
-              user: user,
               onThemeToggle: widget.onThemeToggle,
             ),
           ),

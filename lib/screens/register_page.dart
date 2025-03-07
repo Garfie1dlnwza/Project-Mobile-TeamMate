@@ -6,7 +6,7 @@ import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/services/auth_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
-import 'package:teammate/widgets/navbar.dart';
+import 'package:teammate/widgets/common/navbar.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 
@@ -15,9 +15,9 @@ class RegisterPage extends StatefulWidget {
   final VoidCallback onThemeToggle;
 
   const RegisterPage({
-    Key? key, 
-    required this.onRegister, 
-    required this.onThemeToggle
+    Key? key,
+    required this.onRegister,
+    required this.onThemeToggle,
   }) : super(key: key);
 
   @override
@@ -32,7 +32,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -65,7 +66,8 @@ class _RegisterPageState extends State<RegisterPage> {
         id: "", // Temporary placeholder, will be updated in AuthService
         name: fullName,
         email: _emailController.text.trim(),
-        password: _passwordController.text.trim(), // Will not be stored in Firestore
+        password:
+            _passwordController.text.trim(), // Will not be stored in Firestore
         phoneNumber: _phoneNumberController.text.trim(),
         profileImage: 'assets/images/default.png',
         projects: [],
@@ -77,15 +79,14 @@ class _RegisterPageState extends State<RegisterPage> {
       if (user != null && mounted) {
         // Call the onRegister callback
         widget.onRegister(user);
-        
+
         // Navigate to Navbar
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => Navbar(
-              user: user,
-              onThemeToggle: widget.onThemeToggle,
-            ),
+            builder:
+                (context) =>
+                    LoginPage(onLogin: (user) {}, onThemeToggle: () {}),
           ),
         );
       }
@@ -146,10 +147,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     children: [
                       const SizedBox(height: 65),
                       const Center(
-                        child: Text(
-                          "Register",
-                          style: AppTextStyles.heading,
-                        ),
+                        child: Text("Register", style: AppTextStyles.heading),
                       ),
                       const Center(
                         child: Padding(
@@ -338,10 +336,11 @@ class _RegisterPageState extends State<RegisterPage> {
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => LoginPage(
-                                      onLogin: widget.onRegister,
-                                      onThemeToggle: widget.onThemeToggle,
-                                    ),
+                                    builder:
+                                        (context) => LoginPage(
+                                          onLogin: widget.onRegister,
+                                          onThemeToggle: widget.onThemeToggle,
+                                        ),
                                   ),
                                 );
                               },

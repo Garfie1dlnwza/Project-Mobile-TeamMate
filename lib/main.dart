@@ -4,7 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:teammate/models/user_model.dart';
 import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/services/auth_service.dart';
-import 'package:teammate/widgets/navbar.dart';
+import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -97,7 +97,6 @@ class _MyAppState extends State<MyApp> {
       ),
       home: _isLoggedIn && _user != null
           ? Navbar(
-              user: _user!,
               onThemeToggle: _toggleTheme,
               onLogout: logout,
             )
