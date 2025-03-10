@@ -16,11 +16,11 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage>
-  
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   bool _isPasswordVisible = false;
   String? _errorMessage;
@@ -29,11 +29,36 @@ class _LoginPageState extends State<LoginPage>
   late Animation<Offset> _slideAnimation;
 
   Future<void> _login() async {
-    final UserCredential credential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-          email: _emailController.toString(),
-          password: _passwordController.toString(),
-        );
+    FocusScope.of(context).unfocus();
+    if (_formKey.currentState!.validate()) {
+      try {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+        });
+
+        final UserCredential credential = await FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text,
+              password: _passwordController.text,
+            );
+
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          Navigator.pushReplacementNamed(context, '/navbar');
+        }
+      } on FirebaseAuthException catch (e) {
+        setState(() {
+          _errorMessage = e.message ?? 'An error occurred during login';
+        });
+      } catch (e) {
+        setState(() {
+          _errorMessage = 'An unexpected error occurred';
+        });
+      }
+    }
   }
 
   @override
@@ -202,7 +227,11 @@ class _LoginPageState extends State<LoginPage>
                                       ),
                                     ),
                                     GestureDetector(
-                                      onTap: () => Navigator.pushReplacementNamed(context, '/register'),
+                                      onTap:
+                                          () => Navigator.pushReplacementNamed(
+                                            context,
+                                            '/register',
+                                          ),
                                       child: const Text(
                                         'Register',
                                         style: TextStyle(
