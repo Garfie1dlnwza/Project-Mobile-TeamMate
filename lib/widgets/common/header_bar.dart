@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/services/user_service.dart';
 
 class Headbar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
@@ -15,23 +14,7 @@ class Headbar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _HeadbarState extends State<Headbar> {
-  final UserService _userService = UserService();
-  String? _userName;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  Future<void> _loadUserData() async {
-    await _userService.fetchUserName();
-    setState(() {
-      String name = _userService.getUserName;
-      List<String> word = name.split(" ");
-      _userName = word[0];
-    });
-  }
+  String? _userName = FirebaseAuth.instance.currentUser?.displayName;
 
   String _getGreeting() {
     final hour = DateTime.now().hour;

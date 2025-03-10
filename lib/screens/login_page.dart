@@ -1,39 +1,40 @@
 // lib/screens/login_page.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/models/user_model.dart';
-import 'package:teammate/screens/register_page.dart';
-import 'package:teammate/services/auth_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
 import 'package:teammate/utils/validators.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 import 'package:teammate/widgets/common/app_logo.dart';
-import 'package:teammate/widgets/common/navbar.dart';
 
 class LoginPage extends StatefulWidget {
-  final Function(UserModel) onLogin;
-  final VoidCallback onThemeToggle;
-
-  const LoginPage({Key? key, required this.onLogin, required this.onThemeToggle}) : super(key: key);
+  const LoginPage({Key? key}) : super(key: key);
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage>
+  
     with SingleTickerProviderStateMixin {
-  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
   String? _errorMessage;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+
+  Future<void> _login() async {
+    final UserCredential credential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(
+          email: _emailController.toString(),
+          password: _passwordController.toString(),
+        );
+  }
 
   @override
   void initState() {
@@ -60,52 +61,6 @@ class _LoginPageState extends State<LoginPage>
     _passwordController.dispose();
     _animationController.dispose();
     super.dispose();
-  }
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      UserModel? user = await _authService.signInWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text.trim(),
-      );
-
-      if (user == null) {
-        setState(() {
-          _errorMessage = 'Invalid email or password';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      // Call the onLogin callback
-      widget.onLogin(user);
-
-      // Navigate to Navbar
-      if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Navbar(
-              onThemeToggle: widget.onThemeToggle,
-            ),
-          ),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'An error occurred. Please try again.';
-        _isLoading = false;
-      });
-      debugPrint("Error in _login: $e");
-    }
   }
 
   @override
@@ -235,11 +190,7 @@ class _LoginPageState extends State<LoginPage>
                                   ),
                                 ),
                                 const SizedBox(height: 30),
-                                AuthButton(
-                                  text: 'Login',
-                                  onPressed: _login,
-                                  isLoading: _isLoading,
-                                ),
+                                AuthButton(text: 'Login', onPressed: _login),
                                 const SizedBox(height: 24),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -251,17 +202,7 @@ class _LoginPageState extends State<LoginPage>
                                       ),
                                     ),
                                     GestureDetector(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => RegisterPage(
-                                              onRegister: widget.onLogin,
-                                              onThemeToggle: widget.onThemeToggle,
-                                            ),
-                                          ),
-                                        );
-                                      },
+                                      onTap: () => Navigator.pushReplacementNamed(context, '/register'),
                                       child: const Text(
                                         'Register',
                                         style: TextStyle(

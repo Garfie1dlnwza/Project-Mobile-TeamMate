@@ -5,14 +5,7 @@ import 'package:teammate/screens/calendar_page.dart';
 import 'package:teammate/screens/settings_page.dart';
 
 class Navbar extends StatefulWidget {
-  final VoidCallback? onThemeToggle;
-  final VoidCallback? onLogout;
-
-  const Navbar({
-    super.key,
-    this.onThemeToggle,
-    this.onLogout,
-  });
+  const Navbar({Key? key}) : super(key: key);
 
   @override
   State<Navbar> createState() => _NavbarState();

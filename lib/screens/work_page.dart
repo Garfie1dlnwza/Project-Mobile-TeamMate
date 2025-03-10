@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/models/user_model.dart';
+
 import 'package:teammate/widgets/common/header_bar.dart';
 
 class WorkPage extends StatelessWidget {

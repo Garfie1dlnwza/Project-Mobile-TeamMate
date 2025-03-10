@@ -1,9 +1,7 @@
 // lib/screens/register_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:teammate/models/user_model.dart';
 import 'package:teammate/screens/login_page.dart';
-import 'package:teammate/services/auth_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
 import 'package:teammate/widgets/common/navbar.dart';
@@ -11,14 +9,7 @@ import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 
 class RegisterPage extends StatefulWidget {
-  final Function(UserModel) onRegister;
-  final VoidCallback onThemeToggle;
-
-  const RegisterPage({
-    Key? key,
-    required this.onRegister,
-    required this.onThemeToggle,
-  }) : super(key: key);
+  const RegisterPage({Key? key}) : super(key: key);
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -26,10 +17,9 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
-  final TextEditingController _phoneNumberController = TextEditingController();
+  // final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -42,7 +32,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _nameController.dispose();
     _surnameController.dispose();
-    _phoneNumberController.dispose();
+    // _phoneNumberController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -53,7 +43,6 @@ class _RegisterPageState extends State<RegisterPage> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isLoading = true;
       _errorMessage = null;
     });
 
@@ -61,34 +50,19 @@ class _RegisterPageState extends State<RegisterPage> {
       String fullName =
           "${_nameController.text.trim()} ${_surnameController.text.trim()}";
 
-      // Create UserModel object
-      UserModel newUser = UserModel(
-        id: "", // Temporary placeholder, will be updated in AuthService
-        name: fullName,
-        email: _emailController.text.trim(),
-        password:
-            _passwordController.text.trim(), // Will not be stored in Firestore
-        phoneNumber: _phoneNumberController.text.trim(),
-        profileImage: 'assets/images/default.png',
-        projects: [],
-      );
-
-      // Register account using AuthService
-      UserModel? user = await _authService.registerUser(userModel: newUser);
+      final creadential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
+      final user = creadential.user;
 
       if (user != null && mounted) {
-        // Call the onRegister callback
-        widget.onRegister(user);
-
-        // Navigate to Navbar
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) =>
-                    LoginPage(onLogin: (user) {}, onThemeToggle: () {}),
-          ),
-        );
+        user.updateDisplayName(_nameController.text);
+        // user.updatePhoneNumber(
+        //   _phoneNumberController.toString() as PhoneAuthCredential,
+        // );
+        Navigator.pushReplacementNamed(context, '/login');
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -222,23 +196,23 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(height: 20),
 
                             // Phone Number Field
-                            AuthTextField(
-                              controller: _phoneNumberController,
-                              label: "Phone Number",
-                              prefixIcon: Icons.phone,
-                              keyboardType: TextInputType.phone,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Please enter your phone number';
-                                }
-                                // Basic phone number validation
-                                if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                                  return 'Please enter a valid 10-digit phone number';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 20),
+                            // AuthTextField(
+                            //   controller: _phoneNumberController,
+                            //   label: "Phone Number",
+                            //   prefixIcon: Icons.phone,
+                            //   keyboardType: TextInputType.phone,
+                            //   validator: (value) {
+                            //     if (value == null || value.isEmpty) {
+                            //       return 'Please enter your phone number';
+                            //     }
+                            //     // Basic phone number validation
+                            //     if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                            //       return 'Please enter a valid 10-digit phone number';
+                            //     }
+                            //     return null;
+                            //   },
+                            // ),
+                            // const SizedBox(height: 20),
 
                             // Email Field
                             AuthTextField(
@@ -333,15 +307,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             // Back to Sign In Button
                             TextButton(
                               onPressed: () {
-                                Navigator.pushReplacement(
+                                Navigator.pushReplacementNamed(
                                   context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => LoginPage(
-                                          onLogin: widget.onRegister,
-                                          onThemeToggle: widget.onThemeToggle,
-                                        ),
-                                  ),
+                                  '/login',
                                 );
                               },
                               child: const Text(
