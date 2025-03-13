@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/storage/supabase_service.dart';
+import 'package:teammate/screens/settings/securityprivacy_dialog.dart';
 import 'package:teammate/widgets/common/build_setting_item.dart';
-import 'package:teammate/widgets/common/card_editprofile.dart';
+import 'package:teammate/widgets/common/card/card_editprofile.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -69,7 +70,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 Navigator.pushNamed(context, '/changepassword');
               },
             ),
-            buildSettingItem(title: 'Security & Privacy', onTap: () {}),
+            buildSettingItem(
+              title: 'Security & Privacy',
+              onTap: () {
+                showSecurityPrivacyDialog(context);
+              },
+            ),
             SizedBox(height: 40),
             Padding(
               padding: EdgeInsets.fromLTRB(40, 0, 0, 0),
@@ -79,7 +85,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             buildSettingItem(title: 'Theme', onTap: () {}),
-            buildSettingItem(title: 'Security & Privacy', onTap: () {}),
+            buildSettingItem(title: 'Language', onTap: () {}),
             SizedBox(height: 40),
             // Styled Logout Button
             Padding(
