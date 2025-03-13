@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 class Headbar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
-
   const Headbar({super.key, required this.title});
 
   @override
@@ -23,13 +22,16 @@ class _HeadbarState extends State<Headbar> {
 
   @override
   Widget build(BuildContext context) {
+    List<String>? temp = _userName?.split(' ');
+    String username = temp![0];
+
     if (widget.title == 'HOME') {
       return AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Hello, ${_userName}',
+              'Hello, ${username}',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
             Text(
