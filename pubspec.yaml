@@ -71,6 +71,7 @@ flutter:
     - assets/images/Calendar.png
     - assets/images/Business.png
     - assets/images/noti.png
+    - assets/images/plus_icon.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -105,6 +106,7 @@ flutter:
         - asset: assets/fonts/Poppins/Poppins-SemiBoldItalic.ttf
         - asset: assets/fonts/Poppins/Poppins-Thin.ttf
         - asset: assets/fonts/Poppins/Poppins-ThinItalic.ttf
+        
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

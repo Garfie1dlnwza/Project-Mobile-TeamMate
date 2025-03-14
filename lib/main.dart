@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:teammate/screens/create_project_page.dart';
 import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/screens/register_page.dart';
 import 'package:teammate/widgets/common/navbar.dart';
@@ -54,6 +55,7 @@ class _MyAppState extends State<MyApp> {
         '/login': (context) => LoginPage(),
         '/navbar': (context) => Navbar(),
         '/register': (context) => RegisterPage(),
+        '/create_project': (context) => CreateProjectPage(),
       },
     );
   }
