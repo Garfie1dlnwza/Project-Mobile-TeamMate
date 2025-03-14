@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '600039278458',
     projectId: 'teammate-3c11d',
     storageBucket: 'teammate-3c11d.firebasestorage.app',
+    iosClientId: '600039278458-0fi50d93hurac8mgcj2jmbno5tp19g1k.apps.googleusercontent.com',
     iosBundleId: 'com.example.teammate',
   );
 
@@ -73,6 +74,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '600039278458',
     projectId: 'teammate-3c11d',
     storageBucket: 'teammate-3c11d.firebasestorage.app',
+    iosClientId: '600039278458-0fi50d93hurac8mgcj2jmbno5tp19g1k.apps.googleusercontent.com',
     iosBundleId: 'com.example.teammate',
   );
 
@@ -85,4 +87,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'teammate-3c11d.firebasestorage.app',
     measurementId: 'G-F0GJTST75H',
   );
+
 }

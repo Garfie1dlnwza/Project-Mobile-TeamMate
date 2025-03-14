@@ -3,12 +3,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:teammate/screens/create_project_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:teammate/screens/settings/changepassword_page.dart';
 import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/screens/register_page.dart';
+
+import 'package:teammate/screens/settings/edit_name.dart';
 import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
 
+const supabaseUrl = 'https://pbmdxpblojftznnabrdl.supabase.co';
+const supabaseKey =
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBibWR4cGJsb2pmdHpubmFicmRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2NzU1NjYsImV4cCI6MjA1NzI1MTU2Nn0.0sHm8koN3Q7tJa-jMOSttq1GuF8NHtZpGmiO1h23ZKw';
+
 void main() async {
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(MyApp());
@@ -45,8 +54,8 @@ class _MyAppState extends State<MyApp> {
                   secondary: Colors.lightBlue,
                 )
                 : const ColorScheme.light(
-                  primary: Colors.blue,
-                  secondary: Colors.lightBlue,
+                  primary: Color.fromARGB(255, 255, 255, 255),
+                  secondary: Color.fromARGB(255, 255, 255, 255),
                 ),
       ),
       initialRoute:
@@ -56,6 +65,8 @@ class _MyAppState extends State<MyApp> {
         '/navbar': (context) => Navbar(),
         '/register': (context) => RegisterPage(),
         '/create_project': (context) => CreateProjectPage(),
+        '/changepassword': (context) => ChangePasswordPage(),
+        '/editname': (context) => EditNamePage(),
       },
     );
   }

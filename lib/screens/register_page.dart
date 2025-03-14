@@ -58,7 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final user = creadential.user;
 
       if (user != null && mounted) {
-        user.updateDisplayName(_nameController.text);
+        user.updateDisplayName(fullName);
         // user.updatePhoneNumber(
         //   _phoneNumberController.toString() as PhoneAuthCredential,
         // );
@@ -85,6 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -119,7 +120,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 65),
                       const Center(
                         child: Text("Register", style: AppTextStyles.heading),
                       ),

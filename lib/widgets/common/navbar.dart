@@ -32,7 +32,7 @@ class _NavbarState extends State<Navbar> {
     return Scaffold(
       body: pages[currentIndex],
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(30, 0, 30, 30),
+        padding: const EdgeInsets.fromLTRB(30, 20, 30, 30),
         child: Container(
           decoration: BoxDecoration(
             color:

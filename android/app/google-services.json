@@ -12,7 +12,12 @@
           "package_name": "com.example.teammate"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "600039278458-02hkjjbidgiamt49mg51jo4fks3ue311.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDRrxfjxh6DsNJzsJu6TejPvedVXmFvOK0"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "600039278458-02hkjjbidgiamt49mg51jo4fks3ue311.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "600039278458-0fi50d93hurac8mgcj2jmbno5tp19g1k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.teammate"
+              }
+            }
+          ]
         }
       }
     }

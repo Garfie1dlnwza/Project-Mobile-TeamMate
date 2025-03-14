@@ -92,6 +92,7 @@ class _LoginPageState extends State<LoginPage>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -228,7 +229,7 @@ class _LoginPageState extends State<LoginPage>
                                     ),
                                     GestureDetector(
                                       onTap:
-                                          () => Navigator.pushReplacementNamed(
+                                          () => Navigator.pushNamed(
                                             context,
                                             '/register',
                                           ),
