@@ -56,9 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
             buildSettingItem(
               title: 'Edit name',
               onTap: () async {
-                // Navigate to EditNamePage and wait for the result
                 final result = await Navigator.pushNamed(context, '/editname');
-                // Reload the page if the result is true (name was updated)
                 if (result == true) {
                   _reloadPage();
                 }
