@@ -1,23 +1,32 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:teammate/storage/supabase_service.dart';
 import 'package:teammate/screens/settings/securityprivacy_dialog.dart';
+import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/build_setting_item.dart';
 import 'package:teammate/widgets/common/card/card_editprofile.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   final String title;
-  const SettingsPage({Key? key, required this.title}) : super(key: key);
-
+  SettingsPage({Key? key, required this.title}) : super(key: key);
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  final FirestoreUserService _userService = FirestoreUserService();
+
   Future<void> _logout() async {
     try {
-      await FirebaseAuth.instance.signOut();
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseAuth.instance.signOut();
+      } else {
+        print('User is null');
+      }
+
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print('Error during logout: $e');

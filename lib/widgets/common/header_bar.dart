@@ -13,7 +13,8 @@ class Headbar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _HeadbarState extends State<Headbar> {
-  String? _userName = FirebaseAuth.instance.currentUser?.displayName;
+  final String? _userName = FirebaseAuth.instance.currentUser?.displayName;
+
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -32,7 +33,7 @@ class _HeadbarState extends State<Headbar> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Hello, ${_userName}',
+                'Hello, ${username}',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
               Text(

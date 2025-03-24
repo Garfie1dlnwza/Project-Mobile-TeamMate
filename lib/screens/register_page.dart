@@ -1,10 +1,9 @@
-// lib/screens/register_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:teammate/screens/login_page.dart';
+import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
-import 'package:teammate/widgets/common/navbar.dart';
+import 'package:uuid/uuid.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 
@@ -17,11 +16,13 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
   // final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirestoreUserService _userService = FirestoreUserService();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isPasswordVisible = false;
@@ -44,25 +45,35 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() {
       _errorMessage = null;
+      _isLoading = true;
     });
 
     try {
-      String fullName =
-          "${_nameController.text.trim()} ${_surnameController.text.trim()}";
-
-      final creadential = await FirebaseAuth.instance
+      final UserCredential credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
-            email: _emailController.text,
-            password: _passwordController.text,
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
           );
-      final user = creadential.user;
 
-      if (user != null && mounted) {
-        user.updateDisplayName(fullName);
-        // user.updatePhoneNumber(
-        //   _phoneNumberController.toString() as PhoneAuthCredential,
-        // );
-        Navigator.pushReplacementNamed(context, '/login');
+      final user = credential.user;
+      if (user != null) {
+        var uuid = Uuid();
+        String notiId = uuid.v4();
+        String fullName =
+            '${_nameController.text.trim()} ${_surnameController.text.trim()}';
+        await user.updateDisplayName(fullName);
+
+        await _userService.createOrUpdateUser(
+          user.uid,
+          fullName,
+          user.email ?? _emailController.text.trim(),
+          projectIds: [],
+          notiId: notiId,
+        );
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/login');
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {

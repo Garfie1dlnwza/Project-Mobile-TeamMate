@@ -154,6 +154,10 @@ firebase_ui_shared
 2.18
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/firebase_ui_shared-1.4.1/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/firebase_ui_shared-1.4.1/lib/
+fixnum
+3.1
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/fixnum-1.1.1/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/fixnum-1.1.1/lib/
 flutter_lints
 3.5
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_lints-5.0.0/
@@ -378,6 +382,10 @@ source_span
 3.1
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/source_span-1.10.1/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/source_span-1.10.1/lib/
+sprintf
+2.12
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sprintf-7.0.0/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sprintf-7.0.0/lib/
 stack_trace
 3.4
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/stack_trace-1.12.1/
@@ -446,6 +454,10 @@ url_launcher_windows
 3.4
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/url_launcher_windows-3.1.4/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/url_launcher_windows-3.1.4/lib/
+uuid
+3.0
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/uuid-4.5.1/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/uuid-4.5.1/lib/
 vector_graphics
 3.4
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/vector_graphics-1.1.18/

@@ -1,9 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:teammate/screens/create_project_page.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:teammate/widgets/common/card/card_project.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WorkPage extends StatefulWidget {
@@ -17,18 +18,29 @@ class WorkPage extends StatefulWidget {
 class _WorkPageState extends State<WorkPage> {
   final FirestoreProjectService _projectService = FirestoreProjectService();
   final FirestoreUserService _userService = FirestoreUserService();
+  User? user = FirebaseAuth.instance.currentUser;
+  // Define project colors for visual distinction
+  final List<Color> projectColors = [
+    Colors.teal.shade200,
+    Colors.pink.shade200,
+    Colors.purple.shade200,
+    Colors.blueGrey.shade200,
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: Headbar(title: widget.title),
       body: StreamBuilder<QuerySnapshot>(
-        stream:
-            _projectService
-                .getProjectsStream(), // ต้องเปลี่ยนเป็น method เอาเฉพาะ project ที่เราอยู่
+        stream: _projectService.getProjectsStream(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -39,123 +51,47 @@ class _WorkPageState extends State<WorkPage> {
             return const Center(child: Text('No projects found'));
           }
 
-          return ListView.builder(
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var project = snapshot.data!.docs[index];
+          return FutureBuilder<DocumentSnapshot>(
+            future: _userService.getUserById(
+              user?.uid ?? "",
+            ), // ดึงข้อมูลของผู้ใช้
+            builder: (context, userSnapshot) {
+              if (userSnapshot.connectionState == ConnectionState.waiting) {
+                return CircularProgressIndicator();
+              }
 
-              //data ของ project เป็น Map<String, dynamic>
-              Map<String, dynamic> data =
-                  project.data() as Map<String, dynamic>;
+              if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                return Center(child: Text("User not found"));
+              }
 
-              // Define a color based on project index for visual distinction
-              List<Color> projectColors = [
-                Colors.teal.shade200,
-                Colors.pink.shade200,
-                Colors.purple.shade200,
-                Colors.blueGrey.shade200,
-              ];
+              // ดึง projectIDs ของผู้ใช้
+              List<String> userProjectIDs = List<String>.from(
+                userSnapshot.data!['projectIds'] ?? [],
+              );
 
-              Color projectColor = projectColors[index % projectColors.length];
+              return ListView.builder(
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  var project = snapshot.data!.docs[index];
+                  Map<String, dynamic> data =
+                      project.data() as Map<String, dynamic>;
 
-              return Card(
-                color: projectColor,
-                margin: const EdgeInsets.all(8.0),
-                child: InkWell(
-                  onTap: () {
-                    // Navigate to project details page
-                    // You can implement this navigation
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  data['name'] ?? 'Unnamed Project',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.more_vert,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: () {
-                                    // Show options menu
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            // Text(
-                            //   'Project Manager: ${_userService.getUserName(data['headId'])}',
-                            //   style: const TextStyle(color: Colors.white),
-                            // ),
-                            FutureBuilder<String>(
-                              future: _userService.getUserName(
-                                data['headId'],
-                              ), // ดึงชื่อจาก Firestore
-                              builder: (context, userSnapshot) {
-                                if (userSnapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Text(
-                                    'Loading...',
-                                    style: TextStyle(color: Colors.white),
-                                  ); // แสดง Loading ระหว่างดึงข้อมูล
-                                }
+                  // ตรวจสอบว่า projectID ของโปรเจคตรงกับ projectIDs ของผู้ใช้
+                  String projectId = project.id;
+                  if (!userProjectIDs.contains(projectId)) {
+                    return SizedBox.shrink(); // ไม่แสดงโปรเจคนี้
+                  }
 
-                                if (userSnapshot.hasError) {
-                                  return Text(
-                                    'Error: ${userSnapshot.error}',
-                                    style: const TextStyle(color: Colors.white),
-                                  ); // แสดง error ถ้ามีปัญหา
-                                }
+                  // Assign a color to the project card
+                  Color projectColor =
+                      projectColors[index % projectColors.length];
 
-                                if (!userSnapshot.hasData) {
-                                  return const Text(
-                                    'Project Manager: Unknown',
-                                    style: TextStyle(color: Colors.white),
-                                  ); // กรณีที่ไม่มีข้อมูล
-                                }
-
-                                return Text(
-                                  'Project Manager: ${userSnapshot.data}',
-                                  style: const TextStyle(color: Colors.white),
-                                ); // แสดงชื่อหัวหน้าโปรเจค
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (data['tasks'] != null &&
-                          (data['tasks'] as List).isNotEmpty)
-                        Container(
-                          color: Colors.white,
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'WORK: ${(data['tasks'] as List).join(', ')}',
-                                style: const TextStyle(color: Colors.black54),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                  return ProjectCard(
+                    data: data,
+                    projectColor: projectColor,
+                    userService: _userService,
+                  );
+                },
               );
             },
           );

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_project_service.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 
@@ -17,8 +16,15 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final FirestoreProjectService _projectService = FirestoreProjectService();
-  //final FirestoreUserService _userService = FirestoreUserService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirestoreUserService userService = FirestoreUserService();
+
+  // Define gray theme colors
+  final Color _primaryGray = const Color(0xFF424242);
+  final Color _lightGray = const Color(0xFF757575);
+  final Color _darkGray = const Color(0xFF212121);
+  final Color _accentGray = const Color(0xFF9E9E9E);
+  final Color _backgroundGray = const Color(0xFFF5F5F5);
 
   final Map<String, bool> _selectedDepartments = {
     'Research & Development (R&D)': false,
@@ -42,30 +48,14 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     super.dispose();
   }
 
-  String? _getCurrentUserId() {
-    // Get current user from Firebase Authentication
-    User? currentUser = _auth.currentUser;
-    if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        //เผื่อๆไว้
-        const SnackBar(
-          content: Text('You must be logged in to create a project'),
-        ),
-      );
-      return null;
-    }
-    return currentUser.uid;
-  }
-
   void _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
-    // Get current user ID
-    String? currentUserId = _getCurrentUserId();
+    String? currentUserId = _auth.currentUser!.uid;
     if (currentUserId == null) {
-      return; // Exit summit() if user is not logged in
+      print('uid user is null');
+      return;
     }
 
     setState(() {
@@ -73,41 +63,36 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     });
 
     try {
-      // Convert selected departments to a list
       List<String> departments =
           _selectedDepartments.entries
               .where((entry) => entry.value)
               .map((entry) => entry.key)
               .toList();
 
-      // Create project object
       Map<String, dynamic> projectData = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
+        'users':[currentUserId],
         'headId': currentUserId,
-        'admins': [], // Initially empty
-        'departments': departments, //เป็น list ของ departments ที่่จะสร้าง
-        'tasks': [], // Initially empty
-        'polls': [], // Initially empty
-        'documents': [], // Initially empty
+        'admins': [],
+        'departments': departments,
+        'tasks': [],
+        'polls': [],
+        'documents': [],
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-      // Call service to create project
-      await _projectService.createProject(projectData);
-
-      // if (mounted) {
-      //   Navigator.pop(context);
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(content: Text('Project created successfully')),
-      //   );
-      // }
+      String projectID = await _projectService.createProject(projectData);
+      await userService.updateUserProjects(currentUserId, projectID);
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error creating project: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating project: $e'),
+            backgroundColor: _darkGray,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -120,109 +105,178 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Create Project',
-          style: TextStyle(fontWeight: FontWeight.bold),
+    return Theme(
+      data: ThemeData(
+        colorScheme: ColorScheme.light(
+          primary: _primaryGray,
+          secondary: _accentGray,
+          surface: _backgroundGray,
+          background: _backgroundGray,
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        appBarTheme: AppBarTheme(
+          backgroundColor: _darkGray,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          fillColor: Colors.white,
+          filled: true,
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: _primaryGray, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: _lightGray),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.red),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Colors.red, width: 2),
+          ),
+          labelStyle: TextStyle(color: _primaryGray),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _darkGray,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        checkboxTheme: CheckboxThemeData(
+          fillColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
+              return _primaryGray;
+            }
+            return null;
+          }),
+          checkColor: MaterialStateProperty.all(Colors.white),
         ),
       ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(30.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Builder(
-                builder: (context) {
-                  return TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Project Name',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+      child: Scaffold(
+        backgroundColor: _backgroundGray,
+        appBar: AppBar(
+          title: const Text(
+            'Create Project',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(30.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Project Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a project name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 36),
+                TextFormField(
+                  controller: _descriptionController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 50),
+                Padding(
+                  padding: const EdgeInsets.only(left: 15),
+                  child: Text(
+                    'Departments',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _darkGray,
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a project name';
-                      }
-                      return null;
-                    },
-                  );
-                },
-              ),
-              const SizedBox(height: 36),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                maxLines: 4,
-              ),
-              const SizedBox(height: 50),
-              Padding(
-                padding: EdgeInsets.only(left: 15),
-                child: const Text(
-                  'Departments',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      children:
+                          _selectedDepartments.keys.map((department) {
+                            return CheckboxListTile(
+                              title: Text(
+                                department,
+                                style: TextStyle(color: _darkGray),
+                              ),
+                              value: _selectedDepartments[department],
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  _selectedDepartments[department] =
+                                      value ?? false;
+                                });
+                              },
+                              activeColor: _primaryGray,
+                              checkColor: Colors.white,
+                            );
+                          }).toList(),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              ..._selectedDepartments.keys.map((department) {
-                return CheckboxListTile(
-                  title: Text(department),
-                  value: _selectedDepartments[department],
-                  onChanged: (bool? value) {
-                    setState(() {
-                      _selectedDepartments[department] = value ?? false;
-                    });
-                  },
-                );
-              }).toList(),
-              const SizedBox(height: 100),
-              Padding(
-                padding: EdgeInsets.only(right: 20),
-                child: Align(
+                const SizedBox(height: 80),
+                Align(
                   alignment: Alignment.topRight,
-                  child: SizedBox(
+                  child: Container(
                     height: 50,
-                    width: 130,
+                    width: 160,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _darkGray.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 68, 68, 68),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            10,
-                          ), // Make edges sharp (square)
-                        ),
-                      ),
                       child:
                           _isLoading
-                              ? const CircularProgressIndicator()
-                              : const Text(
-                                'Create',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                              : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Text(
+                                    'Create',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(Icons.check_circle_outline),
+                                ],
                               ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

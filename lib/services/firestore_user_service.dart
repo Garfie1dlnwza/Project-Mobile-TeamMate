@@ -1,52 +1,95 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class FirestoreUserService {
-  final CollectionReference _usersCollection = 
-      FirebaseFirestore.instance.collection('users');
-  
-  // Get user data by ID
-  Future<DocumentSnapshot> getUserById(String userId) async {
-    return await _usersCollection.doc(userId).get();
+  final CollectionReference _usersCollection = FirebaseFirestore.instance
+      .collection('users');
+  static Future<void> initialize() async {
+    await Firebase.initializeApp();
   }
 
-  // Get user's display name by ID
-  Future<String> getUserName(String userId) async {
+  Future<void> createOrUpdateUser(
+    String userId,
+    String name,
+    String email, {
+    List<String>? projectIds,
+    String? notiId,
+  }) async {
+    try {
+      await _usersCollection.doc(userId).set({
+        'uid': userId,
+        'name': name,
+        'email': email,
+        'projectIds': projectIds ?? [],
+        'notiId': notiId,
+        'lastLogin': DateTime.now(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print("Error creating or updating user: $e");
+    }
+  }
+
+  Future<DocumentSnapshot> getUserById(String userId) async {
+    try {
+      return await _usersCollection.doc(userId).get();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<String?> findNameById(String id) async {
+    try {
+      DocumentSnapshot userDoc = await _usersCollection.doc(id).get();
+      if (!userDoc.exists) {
+        print("User not found for ID: $id");
+        return null;
+      }
+      return userDoc['name'] as String?;
+    } catch (e) {
+      print("Error finding user by ID: $e");
+      return null;
+    }
+  }
+
+  Future<List<String>> getUserProjects(String userId) async {
     try {
       DocumentSnapshot userDoc = await _usersCollection.doc(userId).get();
       if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        // Try to get display name, full name, or return userId if not found
-        return userData['displayName'] ?? 
-               userData['fullName'] ?? 
-               userData['name'] ?? 
-               userData['firstName'] + ' ' + userData['lastName'] ?? 
-               'User-$userId';
+        return List<String>.from(userDoc['projectIds'] ?? []);
       }
-      return 'Unknown User';
     } catch (e) {
-      print('Error getting user name: $e');
-      return 'Unknown User';
+      print("Error getting user projects: $e");
+    }
+    return [];
+  }
+
+  Future<void> updateUserProjects(String userId, String projectIds) async {
+    try {
+      await _usersCollection.doc(userId).update({
+        'projectIds': FieldValue.arrayUnion([projectIds]),
+      });
+    } catch (e) {
+      print("Error updating user projects: $e");
     }
   }
-  
-  // Create or update user data
-  Future<void> setUserData(String userId, Map<String, dynamic> userData) async {
-    await _usersCollection.doc(userId).set(userData, SetOptions(merge: true));
+
+  Future<String?> getUserNotiId(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await _usersCollection.doc(userId).get();
+      if (userDoc.exists) {
+        return userDoc['notiId'] as String?;
+      }
+    } catch (e) {
+      print("Error getting notification ID: $e");
+    }
+    return null;
   }
-  
-  // Update user data
-  Future<void> updateUserData(String userId, Map<String, dynamic> userData) async {
-    await _usersCollection.doc(userId).update(userData);
-  }
-  
-  // Check if user exists
-  Future<bool> checkUserExists(String userId) async {
-    DocumentSnapshot userDoc = await _usersCollection.doc(userId).get();
-    return userDoc.exists;
-  }
-  
-  // Get a stream of user data for realtime updates
-  Stream<DocumentSnapshot> getUserStream(String userId) {
-    return _usersCollection.doc(userId).snapshots();
+
+  Future<void> updateUserNotiId(String userId, String notiId) async {
+    try {
+      await _usersCollection.doc(userId).update({'notiId': notiId});
+    } catch (e) {
+      print("Error updating notification ID: $e");
+    }
   }
 }

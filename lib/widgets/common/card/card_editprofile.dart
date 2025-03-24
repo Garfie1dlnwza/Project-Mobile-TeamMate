@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:teammate/storage/supabase_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfileEditCard extends StatefulWidget {
@@ -16,14 +15,11 @@ class ProfileEditCard extends StatefulWidget {
 class _ProfileEditCardState extends State<ProfileEditCard> {
   bool _isLoading = false;
 
-
   Future<void> _selectImageFromGallery() async {
     try {
       setState(() {
         _isLoading = true;
       });
-
-      await SupabaseService.pickAndUploadImage();
 
       if (widget.onImageUpdated != null) {
         widget.onImageUpdated!();
@@ -48,14 +44,14 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
-      if (image != null) {
-        File imageFile = File(image.path);
-        String? imageUrl = await SupabaseService.uploadToSupabase(imageFile);
+      // if (image != null) {
+      //   File imageFile = File(image.path);
+      //   String? imageUrl = await SupabaseService.uploadToSupabase(imageFile);
 
-        if (imageUrl != null && widget.onImageUpdated != null) {
-          widget.onImageUpdated!();
-        }
-      }
+      //   if (imageUrl != null && widget.onImageUpdated != null) {
+      //     widget.onImageUpdated!();
+      //   }
+      // }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
