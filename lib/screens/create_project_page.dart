@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/services/firestore_user_service.dart';
@@ -88,27 +89,44 @@ class _CreateProjectPageState extends State<CreateProjectPage>
     });
 
     try {
-      List<String> departments =
-          _selectedDepartments.entries
-              .where((entry) => entry.value)
-              .map((entry) => entry.key)
-              .toList();
+      List<String> departmentIds = [];
 
+      for (var entry in _selectedDepartments.entries) {
+        if (entry.value) {
+          // สร้าง department ใน Firestore และรับ departmentId
+          Map<String, dynamic> departmentData = {
+            'name': entry.key, // ชื่อ department
+            'admins': [],
+            'polls': [],
+            'documents': [],
+            'tasks': [],
+            'questions': [],
+          };
+
+          String departmentId = await FirestoreDepartmentService()
+              .createDepartment(departmentData);
+          print("✅ Department created with ID: $departmentId");
+          departmentIds.add(departmentId);
+        }
+      }
+
+      // สร้าง projectData โดยใช้ departmentIds ที่สร้างมา
       Map<String, dynamic> projectData = {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'users': [],
+        'users': [], //ต้องเก็บไหมวะเหมือนไม่ต้องเลยน่าจะ query ได้ปะ
         'headId': currentUserId,
-        'admins': [],
-        'departments': departments,
-        'tasks': [],
-        'polls': [],
-        'documents': [],
+        //'admins': [],
+        'departments': departmentIds,
+        //'tasks': [],
+        //'polls': [],
+        //'documents': [],
         'createdAt': FieldValue.serverTimestamp(),
       };
 
       String projectID = await _projectService.createProject(projectData);
       await userService.updateUserProjects(currentUserId, projectID);
+      print("✅ Project created with ID: $projectID");
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {

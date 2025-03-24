@@ -15,7 +15,6 @@ class Headbar extends StatefulWidget implements PreferredSizeWidget {
 class _HeadbarState extends State<Headbar> {
   final String? _userName = FirebaseAuth.instance.currentUser?.displayName;
 
-
   String _getGreeting() {
     final hour = DateTime.now().hour;
     return hour < 12 ? 'Good Morning' : 'Good Afternoon';
@@ -58,12 +57,12 @@ class _HeadbarState extends State<Headbar> {
       );
     } else if (widget.title == 'WORKPAGE') {
       return AppBar(
-        title: Center(
-          child: Text(
-            widget.title,
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+        centerTitle: true,
+        title: Text(
+          widget.title,
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
           child: Image.asset('assets/images/default.png'),

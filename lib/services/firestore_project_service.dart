@@ -8,7 +8,7 @@ class FirestoreProjectService {
     DocumentReference docRef = await FirebaseFirestore.instance
         .collection('projects')
         .add(projectData);
-    return docRef.id; 
+    return docRef.id;
   }
 
   // Get a stream of all projects
@@ -35,8 +35,9 @@ class FirestoreProjectService {
   Future<void> deleteProject(String projectId) async {
     await _projectsCollection.doc(projectId).delete();
   }
+}
 
-
+/*
   // Add a task to a project
   Future<void> addTaskToProject(String projectId, String taskId) async {
     await _projectsCollection.doc(projectId).update({
@@ -108,3 +109,4 @@ class FirestoreProjectService {
     return admins.contains(userId);
   }
 }
+*/
