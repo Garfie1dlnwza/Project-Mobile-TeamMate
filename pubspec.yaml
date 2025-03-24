@@ -42,6 +42,7 @@ dependencies:
   supabase_flutter: ^2.0.0
   image_picker: ^0.8.7+4
   firebase_ui_oauth_google: ^1.4.1
+  flutter_native_splash: ^2.4.4
   uuid: ^4.5.1
 
 dev_dependencies:
@@ -76,6 +77,8 @@ flutter:
     - assets/images/Business.png
     - assets/images/noti.png
     - assets/images/plus_icon.png
+    - assets/images/splash.png
+    - assets/images/background.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -114,3 +117,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  android: true  # ใช้ splash screen บน Android
+  ios: true  # ใช้ splash screen บน iOS
+  web: false  # ไม่ใช้ splash screen บน Web
+  background_image: assets/images/background.png  # พื้นหลังเป็นภาพ
+  image: assets/images/logo.png  # โลโก้ที่จะแสดงใน splash screen
+
