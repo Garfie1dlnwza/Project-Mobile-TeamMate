@@ -92,4 +92,26 @@ class FirestoreUserService {
       print("Error updating notification ID: $e");
     }
   }
+
+// Get user ID by email
+  Future<String?> getUserIdByEmail(String email) async {
+    try {
+      // Query the users collection to find a user with the matching email
+      QuerySnapshot querySnapshot = await _usersCollection
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      // If a user is found, return their user ID
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.id;
+      }
+
+      // Return null if no user is found with the given email
+      return null;
+    } catch (e) {
+      print("Error retrieving user ID by email: $e");
+      return null;
+    }
+  }
 }

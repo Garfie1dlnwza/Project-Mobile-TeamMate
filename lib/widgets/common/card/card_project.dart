@@ -48,7 +48,7 @@ class ProjectCard extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => WorkPageTwo(title: 'My Work', data: data),
+                builder: (context) => WorkPageTwo(title: 'MY WORK', data: data),
               ),
             );
             print(data);

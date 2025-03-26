@@ -33,10 +33,22 @@ class FirestoreDepartmentService {
   }
 
   // เพิ่ม admin ให้กับ department
-  Future addAdminToDepartment(String departmentId, String userId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'admins': FieldValue.arrayUnion([userId]),
-    });
+  Future<void> addAdminToDepartment({
+    required String departmentId, 
+    required String adminId
+  }) async {
+    try {
+      // Get current department document reference
+      DocumentReference departmentRef = FirebaseFirestore.instance.collection('departments').doc(departmentId);
+      
+      // Update the admins array, using arrayUnion to avoid duplicates
+      await departmentRef.update({
+        'admins': FieldValue.arrayUnion([adminId])
+      });
+    } catch (e) {
+      print("Error adding admin to department: $e");
+      rethrow;
+    }
   }
 
   // ลบ admin ออกจาก department

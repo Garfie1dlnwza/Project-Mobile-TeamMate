@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:teammate/screens/myworks/add_admin_page.dart';
 import 'package:teammate/widgets/common/card/card_departments.dart';
-
 
 class WorkPageTwo extends StatefulWidget {
   final String title;
@@ -16,7 +16,32 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(
+          widget.title,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) =>
+                          AddAdminPage(title: 'ADD ADMIN', data: widget.data),
+                ),
+              );
+              print(widget.data);
+            },
+            child: Image.asset('assets/images/plus_icon.png'),
+          ),
+          const SizedBox(width: 16.0),
+          Image.asset('assets/images/noti.png'),
+        ],
+        actionsPadding: EdgeInsets.fromLTRB(0, 0, 20, 0),
+      ),
       body: Padding(
         padding: EdgeInsets.fromLTRB(20, 40, 0, 0),
         child: Column(
