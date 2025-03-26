@@ -5,25 +5,34 @@ class FirestoreProjectService {
       .collection('projects');
 
   Future<String> createProject(Map<String, dynamic> projectData) async {
-    DocumentReference docRef = await FirebaseFirestore.instance
-        .collection('projects')
-        .add(projectData);
+    DocumentReference docRef = await _projectsCollection.add(projectData);
     return docRef.id;
   }
 
-  // Get a stream of all projects
+  // ดึงสตรีมของโปรเจคสำหรับผู้ใช้
+  Stream<QuerySnapshot> getUserProjectsStream(List<String> projectIds) {
+    if (projectIds.isEmpty) {
+      return Stream.empty();
+    }
+    return _projectsCollection
+        .where(FieldPath.documentId, whereIn: projectIds)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // ดึงสตรีมของโปรเจคทั้งหมด
   Stream<QuerySnapshot> getProjectsStream() {
     return _projectsCollection
         .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
-  // Get a specific project by ID
+  // ดึงโปรเจคเฉพาะโดย ID
   Future<DocumentSnapshot> getProjectById(String projectId) async {
     return await _projectsCollection.doc(projectId).get();
   }
 
-  // Update project information
+  // อัปเดตข้อมูลโปรเจค
   Future<void> updateProject(
     String projectId,
     Map<String, dynamic> projectData,
@@ -31,82 +40,33 @@ class FirestoreProjectService {
     await _projectsCollection.doc(projectId).update(projectData);
   }
 
-  // Delete a project
+  // ลบโปรเจค
   Future<void> deleteProject(String projectId) async {
     await _projectsCollection.doc(projectId).delete();
   }
-}
 
-/*
-  // Add a task to a project
-  Future<void> addTaskToProject(String projectId, String taskId) async {
-    await _projectsCollection.doc(projectId).update({
-      'tasks': FieldValue.arrayUnion([taskId]),
-    });
-  }
+  // ดึงโปรเจคโดยใช้ department ID
+  Future<DocumentSnapshot> getProjectByDepartmentId(String departmentId) async {
+    try {
+      // Query projects where the departments array contains the specified departmentId
+      QuerySnapshot querySnapshot =
+          await _projectsCollection
+              .where('departments', arrayContains: departmentId)
+              .limit(1)
+              .get();
 
-  // Remove a task from a project
-  Future<void> removeTaskFromProject(String projectId, String taskId) async {
-    await _projectsCollection.doc(projectId).update({
-      'tasks': FieldValue.arrayRemove([taskId]),
-    });
-  }
-
-  // Add a department to a project
-  Future<void> addDepartmentToProject(
-    String projectId,
-    String department,
-  ) async {
-    await _projectsCollection.doc(projectId).update({
-      'departments': FieldValue.arrayUnion([department]),
-    });
-  }
-
-  // Remove a department from a project
-  Future<void> removeDepartmentFromProject(
-    String projectId,
-    String department,
-  ) async {
-    await _projectsCollection.doc(projectId).update({
-      'departments': FieldValue.arrayRemove([department]),
-    });
-  }
-
-  // Add an admin to a project
-  Future<void> addAdminToProject(String projectId, String userId) async {
-    await _projectsCollection.doc(projectId).update({
-      'admins': FieldValue.arrayUnion([userId]),
-    });
-  }
-
-  // Remove an admin from a project
-  Future<void> removeAdminFromProject(String projectId, String userId) async {
-    await _projectsCollection.doc(projectId).update({
-      'admins': FieldValue.arrayRemove([userId]),
-    });
-  }
-
-  // Add a poll to a project
-  Future<void> addPollToProject(String projectId, String pollId) async {
-    await _projectsCollection.doc(projectId).update({
-      'polls': FieldValue.arrayUnion([pollId]),
-    });
-  }
-
-  // Add a document to a project
-  Future<void> addDocumentToProject(String projectId, String documentId) async {
-    await _projectsCollection.doc(projectId).update({
-      'documents': FieldValue.arrayUnion([documentId]),
-    });
-  }
-
-  // Check if user is admin of a project
-  Future<bool> isUserAdminOfProject(String projectId, String userId) async {
-    DocumentSnapshot projectDoc =
-        await _projectsCollection.doc(projectId).get();
-    Map<String, dynamic> data = projectDoc.data() as Map<String, dynamic>;
-    List<dynamic> admins = data['admins'] ?? [];
-    return admins.contains(userId);
+      // Check if we found any matching project
+      if (querySnapshot.docs.isNotEmpty) {
+        // Return the first matching project document
+        return querySnapshot.docs.first;
+      } else {
+        // If no project found, throw an error
+        throw Exception('No project found with department ID: $departmentId');
+      }
+    } catch (e) {
+      // Handle any errors during the query process
+      print('Error in getProjectByDepartmentId: $e');
+      throw e;
+    }
   }
 }
-*/

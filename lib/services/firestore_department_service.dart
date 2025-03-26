@@ -12,8 +12,23 @@ class FirestoreDepartmentService {
     return docRef.id;
   }
 
+  // ดึง department จาก Firestore ด้วย ID
+  Future<DocumentSnapshot> getDepartmentById(String departmentId) async {
+    return await _departmentsCollection.doc(departmentId).get();
+  }
+  
+  Stream<QuerySnapshot> getUserDepartmentStream(List<String> departmentIds) {
+    if (departmentIds.isEmpty) {
+      return Stream.empty();
+    }
+    return _departmentsCollection
+        .where(FieldPath.documentId, whereIn: departmentIds)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
   // Get a stream of all departments
-  Stream<QuerySnapshot> getProjectsStream() {
+  Stream<QuerySnapshot> getDepartmentStream() {
     return _departmentsCollection.snapshots();
   }
 

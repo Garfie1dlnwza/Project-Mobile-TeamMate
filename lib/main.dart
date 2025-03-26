@@ -2,11 +2,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:teammate/screens/create_project_page.dart';
+import 'package:teammate/screens/creates/create_project_page.dart';
 import 'package:teammate/screens/settings/changepassword_page.dart';
 import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/screens/register_page.dart';
 import 'package:teammate/screens/settings/edit_name.dart';
+import 'package:teammate/screens/myworks/work_page2.dart';
 import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
 
@@ -22,35 +23,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  ThemeData _themeData = ThemeData.light();
+  ThemeData _themeData = customLightTheme;
+
   void _toggleTheme() {
     setState(() {
       _themeData =
           _themeData.brightness == Brightness.dark
-              ? ThemeData.light()
-              : ThemeData.dark();
+              ? customLightTheme
+              : customDarkTheme;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // FirebaseAuth.instance.signOut();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'TeamMate App',
-      theme: _themeData.copyWith(
-        textTheme: _themeData.textTheme.apply(fontFamily: 'Poppins'),
-        colorScheme:
-            _themeData.brightness == Brightness.dark
-                ? const ColorScheme.dark(
-                  primary: Colors.blue,
-                  secondary: Colors.lightBlue,
-                )
-                : const ColorScheme.light(
-                  primary: Color.fromARGB(255, 255, 255, 255),
-                  secondary: Color.fromARGB(255, 255, 255, 255),
-                ),
-      ),
+      theme: _themeData,
       initialRoute:
           FirebaseAuth.instance.currentUser == null ? '/login' : '/navbar',
       routes: {
@@ -64,3 +53,32 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
+ThemeData customLightTheme = ThemeData.light().copyWith(
+  colorScheme: const ColorScheme.light(
+    primary: Color.fromARGB(255, 255, 255, 255),
+    secondary: Colors.indigoAccent,
+    surface: Colors.white,
+    onPrimary: Colors.white,
+    onSecondary: Colors.black,
+  ),
+  scaffoldBackgroundColor: Colors.white,
+  
+  textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
+);
+
+ThemeData customDarkTheme = ThemeData.dark().copyWith(
+  colorScheme: const ColorScheme.dark(
+    primary: Colors.blueGrey,
+    secondary: Colors.tealAccent,
+    surface: Colors.black,
+    onPrimary: Colors.white,
+    onSecondary: Colors.black,
+  ),
+  scaffoldBackgroundColor: Colors.black,
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Colors.blueGrey,
+    foregroundColor: Colors.white,
+  ),
+  textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Poppins'),
+);

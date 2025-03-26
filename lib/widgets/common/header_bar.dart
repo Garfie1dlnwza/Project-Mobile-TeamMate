@@ -55,7 +55,7 @@ class _HeadbarState extends State<Headbar> {
         ],
         actionsPadding: EdgeInsets.fromLTRB(0, 0, 20, 0),
       );
-    } else if (widget.title == 'WORKPAGE') {
+    } else if (widget.title == 'MY WORK') {
       return AppBar(
         centerTitle: true,
         title: Text(

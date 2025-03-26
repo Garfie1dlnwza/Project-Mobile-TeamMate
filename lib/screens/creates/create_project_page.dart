@@ -4,6 +4,7 @@ import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({Key? key}) : super(key: key);
@@ -33,16 +34,22 @@ class _CreateProjectPageState extends State<CreateProjectPage>
   final Color _cardColor = const Color(0xFFF5F5F5);
 
   final Map<String, bool> _selectedDepartments = {
-    'Research & Development (R&D)': false,
-    'Software Development / Engineering': false,
-    'IT Operations / Infrastructure': false,
-    'Cybersecurity / IT Security': false,
-    'Quality Assurance (QA) / Testing': false,
-    'Product Management': false,
-    'Customer Support / IT Helpdesk': false,
-    'Marketing & Sales': false,
-    'Human Resources (HR)': false,
-    'Finance & Accounting': false,
+    'R&D': false,
+    'Software': false,
+    'IT Ops': false,
+    'Security': false,
+    'QA': false,
+    'Product': false,
+    'Support': false,
+    'Marketing': false,
+    'HR': false,
+    'Finance': false,
+    'Design': false,
+    'DataScience': false,
+    'DevOps': false,
+    'Legal': false,
+    'Admin': false,
+    'Executive': false,
   };
 
   bool _isLoading = false;
@@ -89,18 +96,32 @@ class _CreateProjectPageState extends State<CreateProjectPage>
     });
 
     try {
-      List<String> departmentIds = [];
+      // Create initial project data
+      Map<String, dynamic> projectData = {
+        'name': _nameController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'headId': currentUserId,
+        'projectId': Uuid().v4(),
+        'departments': [], // Initialize with empty array
+        'createdAt': FieldValue.serverTimestamp(),
+      };
 
+      // Create the project and get its ID
+      String projectID = await _projectService.createProject(projectData);
+
+      // Create departments and collect their IDs
+      List<String> departmentIds = [];
       for (var entry in _selectedDepartments.entries) {
         if (entry.value) {
-          // สร้าง department ใน Firestore และรับ departmentId
           Map<String, dynamic> departmentData = {
-            'name': entry.key, // ชื่อ department
+            'name': entry.key,
             'admins': [],
+            'users': [],
             'polls': [],
             'documents': [],
             'tasks': [],
             'questions': [],
+            'projectId': projectID, // Store reference to project
           };
 
           String departmentId = await FirestoreDepartmentService()
@@ -110,23 +131,18 @@ class _CreateProjectPageState extends State<CreateProjectPage>
         }
       }
 
-      // สร้าง projectData โดยใช้ departmentIds ที่สร้างมา
-      Map<String, dynamic> projectData = {
-        'name': _nameController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'users': [], //ต้องเก็บไหมวะเหมือนไม่ต้องเลยน่าจะ query ได้ปะ
-        'headId': currentUserId,
-        //'admins': [],
-        'departments': departmentIds,
-        //'tasks': [],
-        //'polls': [],
-        //'documents': [],
-        'createdAt': FieldValue.serverTimestamp(),
-      };
+      // Update project with department IDs
+      if (departmentIds.isNotEmpty) {
+        await _projectService.updateProject(projectID, {
+          'departments': departmentIds,
+        });
+        print("✅ Project updated with departments: $departmentIds");
+      }
 
-      String projectID = await _projectService.createProject(projectData);
+      // Add project to user's projects
       await userService.updateUserProjects(currentUserId, projectID);
       print("✅ Project created with ID: $projectID");
+
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -215,7 +231,7 @@ class _CreateProjectPageState extends State<CreateProjectPage>
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _getDepartmentShortName(department),
+                        department, // ใช้ชื่อย่อโดยตรง
                         style: TextStyle(
                           color: _textColor,
                           fontSize: 12,
@@ -233,24 +249,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
         },
       ),
     );
-  }
-
-  // Helper to get shorter department names for grid display
-  String _getDepartmentShortName(String fullName) {
-    Map<String, String> shortNames = {
-      'Research & Development (R&D)': 'R&D',
-      'Software Development / Engineering': 'Software Dev',
-      'IT Operations / Infrastructure': 'IT Ops',
-      'Cybersecurity / IT Security': 'Security',
-      'Quality Assurance (QA) / Testing': 'QA',
-      'Product Management': 'Product',
-      'Customer Support / IT Helpdesk': 'Support',
-      'Marketing & Sales': 'Marketing',
-      'Human Resources (HR)': 'HR',
-      'Finance & Accounting': 'Finance',
-    };
-
-    return shortNames[fullName] ?? fullName;
   }
 
   @override
@@ -394,7 +392,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
 
                   const SizedBox(height: 40),
 
-                  // Create Button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     child: SizedBox(

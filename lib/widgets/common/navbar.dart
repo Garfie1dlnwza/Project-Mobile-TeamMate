@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:teammate/screens/home.dart';
-import 'package:teammate/screens/work_page.dart';
+import 'package:teammate/screens/myworks/work_page.dart';
 import 'package:teammate/screens/calendar_page.dart';
 import 'package:teammate/screens/settings_page.dart';
 
@@ -21,7 +21,7 @@ class _NavbarState extends State<Navbar> {
     // Initialize pages with user data
     pages = [
       HomePage(title: 'HOME'),
-      WorkPage(title: 'WORKPAGE'),
+      WorkPage(title: 'MY WORK'),
       CalendarPage(title: 'CALENDAR'),
       SettingsPage(title: 'SETTING'),
     ];

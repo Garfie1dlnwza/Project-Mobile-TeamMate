@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/screens/create_project_page.dart';
+import 'package:teammate/screens/creates/create_project_page.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/card/card_project.dart';
@@ -18,7 +18,8 @@ class WorkPage extends StatefulWidget {
 class _WorkPageState extends State<WorkPage> {
   final FirestoreProjectService _projectService = FirestoreProjectService();
   final FirestoreUserService _userService = FirestoreUserService();
-  User? user = FirebaseAuth.instance.currentUser;
+  final User? user = FirebaseAuth.instance.currentUser;
+
   // Define project colors for visual distinction
   final List<Color> projectColors = [
     Colors.teal.shade200,
@@ -29,45 +30,54 @@ class _WorkPageState extends State<WorkPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (user == null) {
+      return Scaffold(
+        appBar: Headbar(title: widget.title),
+        body: const Center(child: Text('No user logged in')),
+      );
+    }
+
     return Scaffold(
       appBar: Headbar(title: widget.title),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _projectService.getProjectsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-              ),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<DocumentSnapshot>(
+        future: _userService.getUserById(user!.uid),
+        builder: (context, userSnapshot) {
+          if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+            return const Center(child: Text("User not found"));
+          }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          // Get user's project IDs
+          List<String> userProjectIDs = List<String>.from(
+            userSnapshot.data!['projectIds'] ?? [],
+          );
+
+          if (userProjectIDs.isEmpty) {
             return const Center(child: Text('No projects found'));
           }
 
-          return FutureBuilder<DocumentSnapshot>(
-            future: _userService.getUserById(
-              user?.uid ?? "",
-            ), // ดึงข้อมูลของผู้ใช้
-            builder: (context, userSnapshot) {
-              if (userSnapshot.connectionState == ConnectionState.waiting) {
-                return CircularProgressIndicator();
+          // Only fetch projects that belong to this user
+          return StreamBuilder<QuerySnapshot>(
+            stream: _projectService.getUserProjectsStream(userProjectIDs),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
               }
 
-              if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                return Center(child: Text("User not found"));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
               }
 
-              // ดึง projectIDs ของผู้ใช้
-              List<String> userProjectIDs = List<String>.from(
-                userSnapshot.data!['projectIds'] ?? [],
-              );
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('No projects found'));
+              }
 
               return ListView.builder(
                 itemCount: snapshot.data!.docs.length,
@@ -75,14 +85,6 @@ class _WorkPageState extends State<WorkPage> {
                   var project = snapshot.data!.docs[index];
                   Map<String, dynamic> data =
                       project.data() as Map<String, dynamic>;
-
-                  // ตรวจสอบว่า projectID ของโปรเจคตรงกับ projectIDs ของผู้ใช้
-                  String projectId = project.id;
-                  if (!userProjectIDs.contains(projectId)) {
-                    return SizedBox.shrink(); // ไม่แสดงโปรเจคนี้
-                  }
-
-                  // Assign a color to the project card
                   Color projectColor =
                       projectColors[index % projectColors.length];
 
