@@ -93,6 +93,14 @@ class _AddPeoplePageState extends State<AddPeoplePage> {
       }
       print('departmentData: ${_departmentData}');
 
+      // Check if user is admin so : don't add to users
+      List<dynamic> adminList = _departmentData?['admins'] ?? [];
+      if (adminList.contains(userId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This user is already in admins')),
+        );
+        return;
+      }
 
       // Check if user is already in the department
       List<dynamic> userList = _departmentData?['users'] ?? [];
