@@ -1,26 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/screens/myworks/work_page2.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 
 class ProjectCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final Color projectColor;
   final FirestoreUserService userService;
-
-  const ProjectCard({
+  final FirestoreProjectService _projectService = FirestoreProjectService();
+  
+  ProjectCard({
     super.key,
     required this.data,
     required this.projectColor,
     required this.userService,
   });
 
-  @override
-  void initState() {
-    print(data);
+  // Calculate progress based on completed tasks
+  double _calculateProgress() {
+    if (data['tasks'] == null || (data['tasks'] as List).isEmpty) {
+      return 0.0;
+    }
+
+    final int totalTasks = (data['tasks'] as List).length;
+    final int completedTasks = data['completedTasks'] != null 
+        ? (data['completedTasks'] as List).length 
+        : 0;
+
+    return totalTasks > 0 ? completedTasks / totalTasks : 0.0;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Calculate project progress
+    final double progress = _calculateProgress();
+    final int progressPercent = (progress * 100).round();
+    
+    // Format due date if available
+    String dueDateDisplay = data['dueDate'] ?? 'No deadline';
+    
     return Container(
       height: 160,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -51,7 +71,6 @@ class ProjectCard extends StatelessWidget {
                 builder: (context) => WorkPageTwo(title: 'MY WORK', data: data),
               ),
             );
-            print(data);
           },
           splashColor: Colors.white.withOpacity(0.1),
           highlightColor: Colors.white.withOpacity(0.05),
@@ -94,21 +113,25 @@ class ProjectCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.more_vert, color: Colors.white),
-                        onPressed: () {
-                          // Show options menu
-                          _showOptionsMenu(context);
-                        },
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(8),
-                        iconSize: 20,
-                      ),
+                    FutureBuilder<bool>(
+                      future: _checkIfUserIsProjectHead(),
+                      builder: (context, snapshot) {
+                        final bool isProjectHead = snapshot.data ?? false;
+                        
+                        return isProjectHead ? Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.more_vert, color: Colors.white),
+                            onPressed: () => _showOptionsMenu(context),
+                            constraints: const BoxConstraints(),
+                            padding: const EdgeInsets.all(8),
+                            iconSize: 20,
+                          ),
+                        ) : const SizedBox.shrink();
+                      }
                     ),
                   ],
                 ),
@@ -150,14 +173,11 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Tasks: ${(data['tasks'] as List).take(3).join(', ')}${(data['tasks'] as List).length > 3 ? '...' : ''}',
+                          'Tasks: ${(data['tasks'] as List).length}',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
-                            fontStyle: FontStyle.italic,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -165,16 +185,16 @@ class ProjectCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 // Progress indicator
                 LinearProgressIndicator(
-                  value: 0.7, // Replace with actual progress value
+                  value: progress,
                   backgroundColor: Colors.white24,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Progress: 70%', // Replace with actual progress
+                      'Progress: $progressPercent%',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -189,7 +209,7 @@ class ProjectCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          data['dueDate'] ?? 'No deadline',
+                          dueDateDisplay,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -207,51 +227,105 @@ class ProjectCard extends StatelessWidget {
     );
   }
 
+  Future<bool> _checkIfUserIsProjectHead() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || data['id'] == null) return false;
+    
+    try {
+      return await _projectService.isUserHeadOfProject(data['id'], user.uid);
+    } catch (e) {
+      print('Error checking if user is project head: $e');
+      return false;
+    }
+  }
+
   void _showOptionsMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.edit),
-                  title: const Text('Edit Project'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Handle edit action
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.share),
-                  title: const Text('Share Project'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    // Handle share action
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text(
-                    'Delete Project',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Project'),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to edit project page
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share Project'),
+              onTap: () {
+                Navigator.pop(context);
+                // Show share options
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text(
+                'Delete Project',
+                style: TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmation(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Project'),
+        content: Text(
+          'Are you sure you want to delete "${data['name'] ?? 'this project'}"? '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                if (data['id'] != null) {
+                  await _projectService.deleteProject(data['id']);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Project deleted successfully')),
+                  );
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Error: Project ID not found')),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error deleting project: $e')),
+                );
+              }
+            },
+            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }

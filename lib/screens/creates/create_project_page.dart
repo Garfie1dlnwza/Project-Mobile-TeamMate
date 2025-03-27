@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/screens/myworks/work_page.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:uuid/uuid.dart';
+// Import the WorkPageThree
+
 
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({Key? key}) : super(key: key);
@@ -21,6 +24,8 @@ class _CreateProjectPageState extends State<CreateProjectPage>
   final FirestoreProjectService _projectService = FirestoreProjectService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreUserService userService = FirestoreUserService();
+  final FirestoreDepartmentService _departmentService =
+      FirestoreDepartmentService();
 
   // Animation controller
   late AnimationController _animationController;
@@ -101,7 +106,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'headId': currentUserId,
-        'projectId': Uuid().v4(),
         'departments': [], // Initialize with empty array
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -111,6 +115,9 @@ class _CreateProjectPageState extends State<CreateProjectPage>
 
       // Create departments and collect their IDs
       List<String> departmentIds = [];
+      Map<String, String> departmentNameToIdMap =
+          {}; // Map to store department name -> ID
+
       for (var entry in _selectedDepartments.entries) {
         if (entry.value) {
           Map<String, dynamic> departmentData = {
@@ -124,10 +131,12 @@ class _CreateProjectPageState extends State<CreateProjectPage>
             'projectId': projectID, // Store reference to project
           };
 
-          String departmentId = await FirestoreDepartmentService()
-              .createDepartment(departmentData);
+          String departmentId = await _departmentService.createDepartment(
+            departmentData,
+          );
           print("✅ Department created with ID: $departmentId");
           departmentIds.add(departmentId);
+          departmentNameToIdMap[entry.key] = departmentId; // Store the mapping
         }
       }
 
@@ -143,7 +152,32 @@ class _CreateProjectPageState extends State<CreateProjectPage>
       await userService.updateUserProjects(currentUserId, projectID);
       print("✅ Project created with ID: $projectID");
 
-      Navigator.pop(context);
+      // Choose the first department to navigate to
+      if (departmentIds.isNotEmpty) {
+        String firstDepartmentId = departmentIds[0];
+        String firstDepartmentName = "";
+
+        // Find the name of the first department
+        for (var entry in departmentNameToIdMap.entries) {
+          if (entry.value == firstDepartmentId) {
+            firstDepartmentName = entry.key;
+            break;
+          }
+        }
+
+        if (mounted) {
+          // Navigate to WorkPageThree instead of just popping
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => WorkPage(title: 'MY WORK',)),
+          );
+        }
+      } else {
+        // If no departments were created, just go back
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -389,6 +423,46 @@ class _CreateProjectPageState extends State<CreateProjectPage>
 
                   // Department Cards
                   _buildDepartmentsGrid(),
+
+                  const SizedBox(height: 24),
+
+                  // Warning message if no departments selected
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _nameController,
+                    builder: (context, nameValue, _) {
+                      bool anyDepartmentSelected = _selectedDepartments.values
+                          .any((selected) => selected);
+                      return !anyDepartmentSelected
+                          ? Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.amber, width: 1),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.amber[700],
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Please select at least one department to navigate to work page after creation',
+                                    style: TextStyle(
+                                      color: Colors.amber[800],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                          : const SizedBox.shrink();
+                    },
+                  ),
 
                   const SizedBox(height: 40),
 

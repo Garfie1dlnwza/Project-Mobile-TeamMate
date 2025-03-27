@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ListWorkPage extends StatefulWidget {
-  const ListWorkPage({super.key});
+  const ListWorkPage({super.key, required String departmentId, required String projectId});
 
   @override
   State<ListWorkPage> createState() => _ListWorkPageState();

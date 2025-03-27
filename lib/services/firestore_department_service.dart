@@ -6,9 +6,7 @@ class FirestoreDepartmentService {
 
   // สร้าง department ใหม่ใน Firestore
   Future<String> createDepartment(Map<String, dynamic> departmentData) async {
-    DocumentReference docRef = await FirebaseFirestore.instance
-        .collection('departments')
-        .add(departmentData);
+    DocumentReference docRef = await _departmentsCollection.add(departmentData);
     return docRef.id;
   }
 
@@ -38,13 +36,7 @@ class FirestoreDepartmentService {
     required String adminId,
   }) async {
     try {
-      // Get current department document reference
-      DocumentReference departmentRef = FirebaseFirestore.instance
-          .collection('departments')
-          .doc(departmentId);
-
-      // Update the admins array, using arrayUnion to avoid duplicates
-      await departmentRef.update({
+      await _departmentsCollection.doc(departmentId).update({
         'admins': FieldValue.arrayUnion([adminId]),
       });
     } catch (e) {
@@ -53,80 +45,110 @@ class FirestoreDepartmentService {
     }
   }
 
-  // add people to department
-  Future addPeopleToDepartment(String departmentId, String userId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'users': FieldValue.arrayUnion([userId]),
-    });
+  // เพิ่ม user ให้กับ department
+  Future<void> addUserToDepartment({
+    required String departmentId,
+    required String userId,
+  }) async {
+    try {
+      await _departmentsCollection.doc(departmentId).set({
+        'users': FieldValue.arrayUnion([userId]),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print("Error adding user to department: $e");
+      rethrow;
+    }
+  }
+
+  // add people to department (alternative name for same action)
+  Future<void> addPeopleToDepartment(String departmentId, String userId) async {
+    await addUserToDepartment(departmentId: departmentId, userId: userId);
   }
 
   // ลบ admin ออกจาก department
-  Future removeAdminFromDepartment(String departmentId, String userId) async {
+  Future<void> removeAdminFromDepartment(
+    String departmentId,
+    String userId,
+  ) async {
     await _departmentsCollection.doc(departmentId).update({
       'admins': FieldValue.arrayRemove([userId]),
     });
   }
 
-  // เพิ่ม task ให้กับ department
-  Future addTaskToDepartment(String departmentId, String taskId) async {
+  // Helper method for adding items to array fields
+  Future<void> _addItemToArrayField(
+    String departmentId,
+    String fieldName,
+    String itemId,
+  ) async {
     await _departmentsCollection.doc(departmentId).update({
-      'tasks': FieldValue.arrayUnion([taskId]),
+      fieldName: FieldValue.arrayUnion([itemId]),
     });
   }
 
-  // ลบ task ออกจาก department
-  Future removeTaskFromDepartment(String departmentId, String taskId) async {
+  // Helper method for removing items from array fields
+  Future<void> _removeItemFromArrayField(
+    String departmentId,
+    String fieldName,
+    String itemId,
+  ) async {
     await _departmentsCollection.doc(departmentId).update({
-      'tasks': FieldValue.arrayRemove([taskId]),
+      fieldName: FieldValue.arrayRemove([itemId]),
     });
   }
 
-  // เพิ่ม poll ให้กับ department
-  Future addPollToDepartment(String departmentId, String pollId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'polls': FieldValue.arrayUnion([pollId]),
-    });
+  // Add/remove task methods
+  Future<void> addTaskToDepartment(String departmentId, String taskId) async {
+    await _addItemToArrayField(departmentId, 'tasks', taskId);
   }
 
-  // ลบ poll ออกจาก department
-  Future removePollFromDepartment(String departmentId, String pollId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'polls': FieldValue.arrayRemove([pollId]),
-    });
+  Future<void> removeTaskFromDepartment(
+    String departmentId,
+    String taskId,
+  ) async {
+    await _removeItemFromArrayField(departmentId, 'tasks', taskId);
   }
 
-  // เพิ่ม document ให้กับ department
-  Future addDocumentToDepartment(String departmentId, String documentId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'documents': FieldValue.arrayUnion([documentId]),
-    });
+  // Add/remove poll methods
+  Future<void> addPollToDepartment(String departmentId, String pollId) async {
+    await _addItemToArrayField(departmentId, 'polls', pollId);
   }
 
-  // ลบ document ออกจาก department
-  Future removeDocumentFromDepartment(
+  Future<void> removePollFromDepartment(
+    String departmentId,
+    String pollId,
+  ) async {
+    await _removeItemFromArrayField(departmentId, 'polls', pollId);
+  }
+
+  // Add/remove document methods
+  Future<void> addDocumentToDepartment(
     String departmentId,
     String documentId,
   ) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'documents': FieldValue.arrayRemove([documentId]),
-    });
+    await _addItemToArrayField(departmentId, 'documents', documentId);
   }
 
-  // เพิ่ม question ให้กับ department
-  Future addQuestionToDepartment(String departmentId, String questionId) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'questions': FieldValue.arrayUnion([questionId]),
-    });
+  Future<void> removeDocumentFromDepartment(
+    String departmentId,
+    String documentId,
+  ) async {
+    await _removeItemFromArrayField(departmentId, 'documents', documentId);
   }
 
-  // ลบ question ออกจาก department
-  Future removeQuestionFromDepartment(
+  // Add/remove question methods
+  Future<void> addQuestionToDepartment(
     String departmentId,
     String questionId,
   ) async {
-    await _departmentsCollection.doc(departmentId).update({
-      'questions': FieldValue.arrayRemove([questionId]),
-    });
+    await _addItemToArrayField(departmentId, 'questions', questionId);
+  }
+
+  Future<void> removeQuestionFromDepartment(
+    String departmentId,
+    String questionId,
+  ) async {
+    await _removeItemFromArrayField(departmentId, 'questions', questionId);
   }
 
   // ตรวจสอบว่า user เป็น admin ของ department หรือไม่
@@ -136,30 +158,11 @@ class FirestoreDepartmentService {
   ) async {
     DocumentSnapshot departmentDoc =
         await _departmentsCollection.doc(departmentId).get();
-    Map data = departmentDoc.data() as Map;
-    List admins = data['admins'] ?? [];
+    Map<String, dynamic>? data = departmentDoc.data() as Map<String, dynamic>?;
+
+    if (data == null) return false;
+
+    List<dynamic> admins = data['admins'] ?? [];
     return admins.contains(userId);
-  }
-
-  // เพิ่ม user ให้กับ department
-
-  Future<void> addUserToDepartment({
-    required String departmentId,
-    required String userId,
-  }) async {
-    try {
-      // Get current department document reference
-      DocumentReference departmentRef = FirebaseFirestore.instance
-          .collection('departments')
-          .doc(departmentId);
-
-      // Use set with merge to ensure the document exists and the field is created if not
-      await departmentRef.set({
-        'users': FieldValue.arrayUnion([userId]),
-      }, SetOptions(merge: true));
-    } catch (e) {
-      print("Error adding user to department: $e");
-      rethrow;
-    }
   }
 }

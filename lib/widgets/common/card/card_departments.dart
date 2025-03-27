@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:teammate/screens/myworks/work_page3.dart';
 import 'package:teammate/services/firestore_department_service.dart';
-import 'package:teammate/services/firestore_project_service.dart';
 
 class CardDepartments extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -13,33 +12,44 @@ class CardDepartments extends StatefulWidget {
 }
 
 class _CardDepartmentsState extends State<CardDepartments> {
-  final FirestoreProjectService _projectService = FirestoreProjectService();
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
 
-  List<Color> projectColors = [
+  final List<Color> departmentColors = [
     Colors.teal.shade200,
     Colors.pink.shade200,
     Colors.purple.shade200,
     Colors.blueGrey.shade200,
+    Colors.amber.shade200,
+    Colors.indigo.shade200,
   ];
 
-  List<String> departmentsIds = [];
+  List<String> departmentIds = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _extractDepartmentIds();
+  }
 
+  void _extractDepartmentIds() {
     try {
+      setState(() => _isLoading = true);
+
       if (widget.data.containsKey('departments') &&
           widget.data['departments'] != null &&
           widget.data['departments'] is List) {
         final deptsList = widget.data['departments'] as List<dynamic>;
-        departmentsIds = deptsList.map((item) => item.toString()).toList();
-        print('List DepartmentIds $departmentsIds');
+        departmentIds = deptsList.map((item) => item.toString()).toList();
+      } else {
+        _errorMessage = 'No departments found in project data';
       }
     } catch (e) {
-      print('Error while parsing departments: $e');
+      _errorMessage = 'Error extracting departments: $e';
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -48,6 +58,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
     String departmentId,
     String departmentName,
     Color color,
+    int memberCount,
   ) {
     return InkWell(
       onTap:
@@ -117,7 +128,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
                 fontWeight: FontWeight.w600,
                 color: Colors.grey[800],
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             const Spacer(),
@@ -126,7 +137,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
                 Icon(Icons.people, color: Colors.grey[800], size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  '12 Members',
+                  memberCount == 1 ? '1 Member' : '$memberCount Members',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -141,59 +152,142 @@ class _CardDepartmentsState extends State<CardDepartments> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No departments found',
+            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shadowColor: Colors.transparent,
-      color: Colors.transparent,
-      child: SingleChildScrollView(
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (departmentIds.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return SizedBox(
+      height: 200,
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (String departmentId in departmentsIds)
-              FutureBuilder<DocumentSnapshot>(
-                future: _departmentService.getDepartmentById(departmentId),
-                builder: (context, deptSnapshot) {
-                  if (deptSnapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: CircularProgressIndicator(),
-                    );
-                  } else if (deptSnapshot.hasError) {
-                    return Text('Error: ${deptSnapshot.error}');
-                  } else if (!deptSnapshot.hasData ||
-                      !deptSnapshot.data!.exists) {
-                    return const Text('Department not found');
-                  } else {
-                    var departmentData =
-                        deptSnapshot.data!.data() as Map<String, dynamic>;
-                    String departmentName =
-                        departmentData['name'] ?? 'Unnamed Department';
-                    String projectId = '';
+        itemCount: departmentIds.length,
+        padding: const EdgeInsets.only(right: 16),
+        itemBuilder: (context, index) {
+          final String departmentId = departmentIds[index];
+          final Color color = departmentColors[index % departmentColors.length];
 
-                    // ค้นหา projectId จากเอกสาร department
-                    if (departmentData.containsKey('projectId') &&
-                        departmentData['projectId'] != null) {
-                      projectId = departmentData['projectId'];
-                      print('Found projectId in department: $projectId');
-                    } else {
-                      // ใช้ ID จาก widget.data ถ้ามี
-                      projectId = widget.data['id'] ?? '';
-                      print('Using fallback projectId: $projectId');
-                    }
+          return FutureBuilder<DocumentSnapshot>(
+            future: _departmentService.getDepartmentById(departmentId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              }
 
-                    return _buildDepartmentCard(
-                      projectId,
-                      departmentId,
-                      departmentName,
-                      projectColors[departmentsIds.indexOf(departmentId) %
-                          projectColors.length],
-                    );
-                  }
-                },
-              ),
-          ],
-        ),
+              if (snapshot.hasError) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(child: Text('Department not found')),
+                );
+              }
+
+              final departmentData =
+                  snapshot.data!.data() as Map<String, dynamic>?;
+
+              if (departmentData == null) {
+                return Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(child: Text('No department data')),
+                );
+              }
+
+              final String departmentName =
+                  departmentData['name'] ?? 'Unnamed Department';
+              String projectId = '';
+
+              // Find projectId from the department document
+              if (departmentData.containsKey('projectId') &&
+                  departmentData['projectId'] != null) {
+                projectId = departmentData['projectId'];
+              } else {
+                // Use the ID from widget.data as fallback
+                projectId = widget.data['id'] ?? '';
+              }
+
+              // Get member count
+              final List<dynamic> users = departmentData['users'] ?? [];
+              final int memberCount = users.length;
+
+              return _buildDepartmentCard(
+                projectId,
+                departmentId,
+                departmentName,
+                color,
+                memberCount,
+              );
+            },
+          );
+        },
       ),
     );
   }

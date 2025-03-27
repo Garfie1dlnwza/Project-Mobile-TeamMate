@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/screens/myworks/add_admin_page.dart';
+import 'package:teammate/widgets/common/dialog/dialog_addAdmin.dart';
 import 'package:teammate/widgets/common/card/card_departments.dart';
+// New import
 
 class WorkPageTwo extends StatefulWidget {
   final String title;
@@ -20,30 +21,25 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
         centerTitle: true,
         title: Text(
           widget.title,
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                          AddAdminPage(title: 'ADD ADMIN', data: widget.data),
-                ),
+              showDialog(
+                context: context,
+                builder: (context) => AddAdminDialog(data: widget.data),
               );
-              print(widget.data);
             },
             child: Image.asset('assets/images/plus_icon.png'),
           ),
           const SizedBox(width: 16.0),
           Image.asset('assets/images/noti.png'),
         ],
-        actionsPadding: EdgeInsets.fromLTRB(0, 0, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
       ),
       body: Padding(
-        padding: EdgeInsets.fromLTRB(20, 40, 0, 0),
+        padding: const EdgeInsets.fromLTRB(20, 40, 0, 0),
         child: Column(
           children: [
             Row(
@@ -56,8 +52,7 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Text(
                   'Departments',
                   style: TextStyle(
@@ -68,9 +63,9 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             CardDepartments(data: widget.data),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Container(
@@ -81,8 +76,7 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Text(
                   'Ongoing Tasks',
                   style: TextStyle(

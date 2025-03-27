@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/screens/myworks/listwork_page.dart';
-import 'package:teammate/screens/myworks/people_page.dart';
-import 'package:teammate/screens/myworks/post_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/screens/myworks/tabbar/listwork_page.dart';
+import 'package:teammate/screens/myworks/tabbar/people_page.dart';
+import 'package:teammate/screens/myworks/tabbar/post_page.dart';
+import 'package:teammate/services/firestore_department_service.dart';
 
 class WorkPageThree extends StatefulWidget {
   final String departmentId;
@@ -24,11 +26,32 @@ class WorkPageThree extends StatefulWidget {
 class _WorkPageThreeState extends State<WorkPageThree>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final FirestoreDepartmentService _departmentService =
+      FirestoreDepartmentService();
+
+  bool _isLoading = true;
+  Map<String, dynamic>? _departmentData;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _loadDepartmentData();
+  }
+
+  Future<void> _loadDepartmentData() async {
+    try {
+      final docSnapshot = await _departmentService.getDepartmentById(
+        widget.departmentId,
+      );
+      setState(() {
+        _departmentData = docSnapshot.data() as Map<String, dynamic>?;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading department data: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -42,31 +65,32 @@ class _WorkPageThreeState extends State<WorkPageThree>
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'MY WORK',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         bottom: _buildMinimalTabBar(),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                PostPage(),
-                ListWorkPage(),
-                PeoplePage(
-                  projectId: widget.projectId,
-                  departmentId: widget.departmentId,
-                ),
-              ],
-            ),
+          PostPage(
+            departmentId: widget.departmentId,
+            projectId: widget.projectId,
           ),
-          // ข้อความ "test" จะไม่แสดงอีกต่อไป
+
+          ListWorkPage(
+            departmentId: widget.departmentId,
+            projectId: widget.projectId,
+          ),
+
+          PeoplePage(
+            departmentId: widget.departmentId,
+            projectId: widget.projectId,
+          ),
         ],
       ),
     );
@@ -99,10 +123,9 @@ class _WorkPageThreeState extends State<WorkPageThree>
           ),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal),
           dividerColor: Colors.transparent,
-          // ลบหรือลดระยะห่างระหว่าง tab ให้น้อยที่สุด
-          labelPadding: EdgeInsets.symmetric(horizontal: 30),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 30),
           isScrollable: true,
-          tabAlignment: TabAlignment.start, // ทำให้ tab กระจายเต็มความกว้าง
+          tabAlignment: TabAlignment.start,
           tabs: const [
             Tab(text: 'Post'),
             Tab(text: 'Work'),
