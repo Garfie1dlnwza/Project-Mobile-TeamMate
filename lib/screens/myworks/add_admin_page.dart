@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddAdminPage extends StatefulWidget {
   final String title;
@@ -35,8 +36,8 @@ class _AddAdminPageState extends State<AddAdminPage> {
   void initState() {
     super.initState();
 
-    // Get the current user ID from passed data
-    _currentUserId = widget.data['uid'];
+    // Get the current user ID from FirebaseAuth
+    _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     // Fetch the departments associated with the current user
     _fetchDepartments();
@@ -78,6 +79,7 @@ class _AddAdminPageState extends State<AddAdminPage> {
 
   /// Method to add admin to a department
   Future<void> _addAdmin() async {
+    print("✅ headId of Project : ${widget.data['headId']}");
     // Check if email and department are selected
     if (_emailController.text.isEmpty || _selectedDepartmentId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,14 +106,14 @@ class _AddAdminPageState extends State<AddAdminPage> {
         return;
       }
 
-      // Fetch the department document to check head ID
       DocumentSnapshot departmentDoc = await _departmentService
           .getDepartmentById(_selectedDepartmentId!);
       Map<String, dynamic> departmentData =
           departmentDoc.data() as Map<String, dynamic>;
+      print('departmentData: $departmentData');
 
       // Check if the current user is authorized to add admins to the department
-      if (departmentData['headId'] != _currentUserId) {
+      if (widget.data['headId'] != _currentUserId) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -122,11 +124,26 @@ class _AddAdminPageState extends State<AddAdminPage> {
         return;
       }
 
+      // Check if the user is already an admin
+      List<dynamic> adminsList = departmentData['admins'] ?? [];
+      print('admin: $adminsList');
+      if (adminsList.contains(userId)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This user are already an admin of this department'),
+          ),
+        );
+        return;
+      }
+
       // Add the user as admin to the department
       await _departmentService.addAdminToDepartment(
         departmentId: _selectedDepartmentId!,
         adminId: userId,
       );
+
+      // Add the Project to User
+      await _userService.addProjectToUser(departmentData['projectId'], userId);
 
       // Show confirmation message
       ScaffoldMessenger.of(context).showSnackBar(

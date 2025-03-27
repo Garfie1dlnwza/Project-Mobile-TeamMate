@@ -73,6 +73,17 @@ class FirestoreUserService {
     }
   }
 
+  Future<void> addProjectToUser(String projectId, String userId) async {
+    try {
+      await _usersCollection.doc(userId).update({
+        'projectIds': FieldValue.arrayUnion([projectId]),
+      });
+      print("Project $projectId added successfully to user $userId");
+    } catch (e) {
+      print("Error adding project to user: $e");
+    }
+  }
+
   Future<String?> getUserNotiId(String userId) async {
     try {
       DocumentSnapshot userDoc = await _usersCollection.doc(userId).get();
@@ -93,14 +104,15 @@ class FirestoreUserService {
     }
   }
 
-// Get user ID by email
+  // Get user ID by email
   Future<String?> getUserIdByEmail(String email) async {
     try {
       // Query the users collection to find a user with the matching email
-      QuerySnapshot querySnapshot = await _usersCollection
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+      QuerySnapshot querySnapshot =
+          await _usersCollection
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
 
       // If a user is found, return their user ID
       if (querySnapshot.docs.isNotEmpty) {

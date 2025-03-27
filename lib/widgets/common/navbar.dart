@@ -3,6 +3,7 @@ import 'package:teammate/screens/home.dart';
 import 'package:teammate/screens/myworks/work_page.dart';
 import 'package:teammate/screens/calendar_page.dart';
 import 'package:teammate/screens/settings_page.dart';
+import 'package:teammate/screens/myworks/work_page2.dart';
 
 class Navbar extends StatefulWidget {
   const Navbar({Key? key}) : super(key: key);

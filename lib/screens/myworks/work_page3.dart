@@ -41,6 +41,7 @@ class _WorkPageThreeState extends State<WorkPageThree>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        centerTitle: true,
         title: const Text(
           'MY WORK',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -55,7 +56,14 @@ class _WorkPageThreeState extends State<WorkPageThree>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: const [PostPage(), ListWorkPage(), PeoplePage()],
+              children: [
+                PostPage(),
+                ListWorkPage(),
+                PeoplePage(
+                  projectId: widget.projectId,
+                  departmentId: widget.departmentId,
+                ),
+              ],
             ),
           ),
           // ข้อความ "test" จะไม่แสดงอีกต่อไป

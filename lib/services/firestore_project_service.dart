@@ -69,4 +69,22 @@ class FirestoreProjectService {
       throw e;
     }
   }
+
+  // ตรวจสอบว่า user เป็น head ของ project หรือไม่
+  Future<bool> isUserHeadOfProject(String projectId, String userId) async {
+    DocumentSnapshot projectDoc =
+        await _projectsCollection.doc(projectId).get();
+    Map<String, dynamic> data = projectDoc.data() as Map<String, dynamic>;
+
+    // Check if headId is a single string or a list
+    dynamic headId = data['headId'];
+
+    if (headId is String) {
+      return headId == userId;
+    } else if (headId is List) {
+      return headId.contains(userId);
+    }
+
+    return false;
+  }
 }

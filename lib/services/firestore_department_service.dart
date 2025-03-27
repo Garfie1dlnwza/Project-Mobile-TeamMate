@@ -16,7 +16,7 @@ class FirestoreDepartmentService {
   Future<DocumentSnapshot> getDepartmentById(String departmentId) async {
     return await _departmentsCollection.doc(departmentId).get();
   }
-  
+
   Stream<QuerySnapshot> getUserDepartmentStream(List<String> departmentIds) {
     if (departmentIds.isEmpty) {
       return Stream.empty();
@@ -34,21 +34,30 @@ class FirestoreDepartmentService {
 
   // เพิ่ม admin ให้กับ department
   Future<void> addAdminToDepartment({
-    required String departmentId, 
-    required String adminId
+    required String departmentId,
+    required String adminId,
   }) async {
     try {
       // Get current department document reference
-      DocumentReference departmentRef = FirebaseFirestore.instance.collection('departments').doc(departmentId);
-      
+      DocumentReference departmentRef = FirebaseFirestore.instance
+          .collection('departments')
+          .doc(departmentId);
+
       // Update the admins array, using arrayUnion to avoid duplicates
       await departmentRef.update({
-        'admins': FieldValue.arrayUnion([adminId])
+        'admins': FieldValue.arrayUnion([adminId]),
       });
     } catch (e) {
       print("Error adding admin to department: $e");
       rethrow;
     }
+  }
+
+  // add people to department
+  Future addPeopleToDepartment(String departmentId, String userId) async {
+    await _departmentsCollection.doc(departmentId).update({
+      'users': FieldValue.arrayUnion([userId]),
+    });
   }
 
   // ลบ admin ออกจาก department
@@ -130,5 +139,27 @@ class FirestoreDepartmentService {
     Map data = departmentDoc.data() as Map;
     List admins = data['admins'] ?? [];
     return admins.contains(userId);
+  }
+
+  // เพิ่ม user ให้กับ department
+
+  Future<void> addUserToDepartment({
+    required String departmentId,
+    required String userId,
+  }) async {
+    try {
+      // Get current department document reference
+      DocumentReference departmentRef = FirebaseFirestore.instance
+          .collection('departments')
+          .doc(departmentId);
+
+      // Use set with merge to ensure the document exists and the field is created if not
+      await departmentRef.set({
+        'users': FieldValue.arrayUnion([userId]),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      print("Error adding user to department: $e");
+      rethrow;
+    }
   }
 }
