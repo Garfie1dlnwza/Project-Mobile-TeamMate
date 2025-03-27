@@ -4,6 +4,14 @@ class FirestoreDepartmentService {
   final CollectionReference _departmentsCollection = FirebaseFirestore.instance
       .collection('departments');
 
+  Future<String> getDepartmentName(String departmentId) async {
+    final doc = await _departmentsCollection.doc(departmentId).get();
+    if (doc.exists) {
+      return doc.get('name') ?? 'Unnamed Department';
+    }
+    throw Exception('Department not found');
+  }
+
   // สร้าง department ใหม่ใน Firestore
   Future<String> createDepartment(Map<String, dynamic> departmentData) async {
     DocumentReference docRef = await _departmentsCollection.add(departmentData);

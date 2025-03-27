@@ -8,7 +8,6 @@ import 'package:teammate/services/firestore_user_service.dart';
 import 'package:uuid/uuid.dart';
 // Import the WorkPageThree
 
-
 class CreateProjectPage extends StatefulWidget {
   const CreateProjectPage({Key? key}) : super(key: key);
 
@@ -169,7 +168,7 @@ class _CreateProjectPageState extends State<CreateProjectPage>
           // Navigate to WorkPageThree instead of just popping
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => WorkPage(title: 'MY WORK',)),
+            MaterialPageRoute(builder: (context) => WorkPage(title: 'MY WORK')),
           );
         }
       } else {

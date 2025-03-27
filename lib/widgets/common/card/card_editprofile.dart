@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
 
 class ProfileEditCard extends StatefulWidget {
   final Function? onImageUpdated;
@@ -40,9 +38,6 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
       setState(() {
         _isLoading = true;
       });
-
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
       // if (image != null) {
       //   File imageFile = File(image.path);

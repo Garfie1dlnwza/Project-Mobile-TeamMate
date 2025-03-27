@@ -80,6 +80,7 @@ class _WorkPageThreeState extends State<WorkPageThree>
           PostPage(
             departmentId: widget.departmentId,
             projectId: widget.projectId,
+            color: widget.color,
           ),
 
           ListWorkPage(

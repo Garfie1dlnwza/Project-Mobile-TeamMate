@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addPeople.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:teammate/widgets/common/seach_member.dart';
+import 'package:teammate/widgets/common/tab_admin.dart';
+import 'package:teammate/widgets/common/tab_member.dart';
 
 class PeoplePage extends StatefulWidget {
   final String projectId;
@@ -19,7 +23,7 @@ class PeoplePage extends StatefulWidget {
   State<PeoplePage> createState() => _PeoplePageState();
 }
 
-class _PeoplePageState extends State<PeoplePage> {
+class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
   final FirestoreUserService _userService = FirestoreUserService();
@@ -27,11 +31,22 @@ class _PeoplePageState extends State<PeoplePage> {
 
   bool _isAdmin = false;
   bool _isLoading = true;
+  late TabController _tabController;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _checkAdminStatus();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAdminStatus() async {
@@ -50,89 +65,6 @@ class _PeoplePageState extends State<PeoplePage> {
     }
   }
 
-  void _showUserOptions(String userId, String userName) {
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (context) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.admin_panel_settings),
-                title: const Text('Make Admin'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  try {
-                    await _departmentService.addAdminToDepartment(
-                      departmentId: widget.departmentId,
-                      adminId: userId,
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('$userName is now an admin')),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.remove_circle, color: Colors.red),
-                title: const Text(
-                  'Remove from Department',
-                  style: TextStyle(color: Colors.red),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Show confirmation dialog
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AlertDialog(
-                          title: const Text('Remove User'),
-                          content: Text(
-                            'Are you sure you want to remove $userName from this department?',
-                          ),
-                          actions: [
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                            TextButton(
-                              child: const Text(
-                                'Remove',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                try {
-                                  // Remove user logic here
-                                  // This would require a new method in the department service
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '$userName has been removed',
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
-                              },
-                            ),
-                          ],
-                        ),
-                  );
-                },
-              ),
-            ],
-          ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -140,6 +72,38 @@ class _PeoplePageState extends State<PeoplePage> {
     }
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: Container(
+          color: Colors.white,
+          child: Column(
+            children: [
+              // Search bar
+              PeopleSearchBar(
+                controller: _searchController,
+                searchQuery: _searchQuery,
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+                onClear: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              ),
+              // Tab bar
+              TabBar(
+                controller: _tabController,
+                labelColor: AppColors.primaryGradientEnd,
+                unselectedLabelColor: Colors.grey,
+                dividerColor: Colors.transparent,
+                indicatorWeight: 3,
+                tabs: const [Tab(text: 'ALL MEMBERS'), Tab(text: 'ADMINS')],
+              ),
+            ],
+          ),
+        ),
+      ),
       body: StreamBuilder<DocumentSnapshot>(
         stream:
             _departmentService
@@ -152,143 +116,97 @@ class _PeoplePageState extends State<PeoplePage> {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
               ),
             );
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Department not found'));
+            return const Center(
+              child: Text(
+                'Department not found',
+                style: TextStyle(fontSize: 16),
+              ),
+            );
           }
 
           final departmentData = snapshot.data!.data() as Map<String, dynamic>?;
 
           if (departmentData == null) {
-            return const Center(child: Text('No department data available'));
+            return const Center(
+              child: Text(
+                'No department data available',
+                style: TextStyle(fontSize: 16),
+              ),
+            );
           }
 
           final List<dynamic> adminIds = departmentData['admins'] ?? [];
           final List<dynamic> userIds = departmentData['users'] ?? [];
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return TabBarView(
+            controller: _tabController,
             children: [
-              if (adminIds.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text(
-                    'Administrators',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                _buildUserList(adminIds, true),
-                const Divider(),
-              ],
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Members',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+              // All members tab
+              AllMembersTab(
+                userIds: userIds,
+                adminIds: adminIds,
+                isAdmin: _isAdmin,
+                searchQuery: _searchQuery,
+                userService: _userService,
+                departmentService: _departmentService,
+                departmentId: widget.departmentId,
+                projectId: widget.projectId,
               ),
-              _buildUserList(userIds, false),
+              // Admins tab
+              AdminsTab(
+                adminIds: adminIds,
+                searchQuery: _searchQuery,
+                userService: _userService,
+                isAdmin: _isAdmin,
+                departmentService: _departmentService,
+                departmentId: widget.departmentId,
+                projectId: widget.projectId,
+              ),
             ],
           );
         },
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.all(16),
-        child: FloatingActionButton(
-          onPressed: () {
-            // Use the dialog instead of navigating to a new page
-            showDialog(
-              context: context,
-              builder:
-                  (context) => AddPeopleDialog(
-                    title: 'ADD PEOPLE',
-                    projectId: widget.projectId,
-                    departmentId: widget.departmentId,
-                  ),
-            ).then((result) {
-              // Optionally refresh the page if a user was added successfully
-              if (result == true) {
-                setState(() {
-                  // This will trigger a rebuild, which will refresh the StreamBuilder
-                });
-              }
-            });
-          },
-          backgroundColor: Colors.grey[800],
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUserList(List<dynamic> userIds, bool isAdminList) {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: userIds.length,
-        itemBuilder: (context, index) {
-          final userId = userIds[index];
-
-          return FutureBuilder<DocumentSnapshot>(
-            future: _userService.getUserById(userId),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const ListTile(
-                  leading: CircularProgressIndicator(),
-                  title: Text('Loading...'),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return ListTile(
-                  leading: const Icon(Icons.error),
-                  title: Text('Error: ${snapshot.error}'),
-                );
-              }
-
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                return const ListTile(
-                  leading: Icon(Icons.person_outline),
-                  title: Text('User not found'),
-                );
-              }
-
-              final userData = snapshot.data!.data() as Map<String, dynamic>?;
-
-              if (userData == null) {
-                return const ListTile(
-                  leading: Icon(Icons.person_outline),
-                  title: Text('No user data'),
-                );
-              }
-
-              final String userName = userData['name'] ?? 'No name';
-              final String userEmail = userData['email'] ?? 'No email';
-
-              return ListTile(
-                leading: CircleAvatar(child: Text(userName[0].toUpperCase())),
-                title: Text(userName),
-                subtitle: Text(userEmail),
-                trailing:
-                    _isAdmin && !isAdminList
-                        ? IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {
-                            _showUserOptions(userId, userName);
-                          },
-                        )
-                        : null,
-              );
-            },
-          );
-        },
-      ),
+      floatingActionButton:
+          _isAdmin
+              ? FloatingActionButton.extended(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (context) => AddPeopleDialog(
+                          title: 'ADD PEOPLE',
+                          projectId: widget.projectId,
+                          departmentId: widget.departmentId,
+                        ),
+                  ).then((result) {
+                    if (result == true) {
+                      setState(() {});
+                    }
+                  });
+                },
+                backgroundColor: Theme.of(context).primaryColor,
+                icon: const Icon(Icons.person_add, color: Colors.white),
+                label: const Text(
+                  'ADD PEOPLE',
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+              : null,
     );
   }
 }

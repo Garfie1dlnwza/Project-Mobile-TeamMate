@@ -1,7 +1,6 @@
 // lib/screens/login_page.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
 import 'package:teammate/utils/validators.dart';
@@ -22,7 +21,7 @@ class _LoginPageState extends State<LoginPage>
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-  final FirestoreUserService _userService = FirestoreUserService();
+
   bool _isPasswordVisible = false;
   String? _errorMessage;
   late AnimationController _animationController;

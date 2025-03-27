@@ -1,9 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/screens/settings/securityprivacy_dialog.dart';
-import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/build_setting_item.dart';
 import 'package:teammate/widgets/common/card/card_editprofile.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
@@ -16,8 +13,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final FirestoreUserService _userService = FirestoreUserService();
-
   Future<void> _logout() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
