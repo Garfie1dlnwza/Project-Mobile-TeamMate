@@ -186,22 +186,13 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         centerTitle: true,
         title: const Text(
-          'Create Post',
+          'CREATE POST',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Text(
-              '${DateTime.now().hour.toString().padLeft(2, '0')}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Padding(

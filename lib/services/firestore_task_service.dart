@@ -119,12 +119,16 @@ class FirestoreTaskService {
     }
   }
 
-  // Get tasks for a specific department
-  Stream<QuerySnapshot> getDepartmentTasks(String departmentId) {
-    return _firestore
-        .collection('tasks')
-        .where('departmentId', isEqualTo: departmentId)
-        .snapshots();
+  Stream<QuerySnapshot> getTaskbyDepartmentID(String departmentId) {
+    try {
+      return _firestore
+          .collection('tasks')
+          .where('departmentId', isEqualTo: departmentId)
+          .snapshots();
+    } catch (e) {
+      print('Error fetching polls: $e');
+      rethrow;
+    }
   }
 
   // Delete a task

@@ -13,8 +13,6 @@ class HeadTab extends StatelessWidget {
   final bool isAdmin;
   final bool isHead;
   final String projectId;
-  final bool showAddButton;
-  final VoidCallback? onAddButtonPressed;
 
   const HeadTab({
     Key? key,
@@ -25,42 +23,11 @@ class HeadTab extends StatelessWidget {
     required this.isAdmin,
     required this.isHead,
     required this.projectId,
-    this.showAddButton = false,
-    this.onAddButtonPressed,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(child: _buildHeadContent(context)),
-        // Add people button at the bottom of the tab
-        if (showAddButton && onAddButtonPressed != null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 12.0,
-            ),
-            color: Colors.white,
-            child: ElevatedButton.icon(
-              onPressed: onAddButtonPressed,
-              icon: const Icon(Icons.person_add, color: Colors.white),
-              label: const Text(
-                'ADD PEOPLE',
-                style: TextStyle(color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
+    return Column(children: [Expanded(child: _buildHeadContent(context))]);
   }
 
   Widget _buildHeadContent(BuildContext context) {

@@ -105,7 +105,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'headId': currentUserId,
-        'departments': [], // Initialize with empty array
         'createdAt': FieldValue.serverTimestamp(),
       };
 
@@ -123,10 +122,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
             'name': entry.key,
             'admins': [],
             'users': [],
-            'polls': [],
-            'documents': [],
-            'tasks': [],
-            'questions': [],
             'projectId': projectID, // Store reference to project
           };
 

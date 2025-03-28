@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class FirestorePostService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Create a new post
   Future<void> createPost({
     required String creatorId,
     required String title,
@@ -28,7 +27,7 @@ class FirestorePostService {
     }
   }
 
-  Stream<QuerySnapshot> getPostsForDepartment(String departmentId) {
+  Stream<QuerySnapshot> getPostsForDepartmentId(String departmentId) {
     return _firestore
         .collection('posts')
         .where('departmentId', isEqualTo: departmentId)

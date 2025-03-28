@@ -11,7 +11,6 @@ class FirestorePollService {
     DateTime? endDate,
   }) async {
     try {
-      // Create a new poll document in the main 'polls' collection
       DocumentReference pollRef = await _firestore.collection('polls').add({
         'projectId': projectId,
         'departmentId': departmentId,
@@ -25,12 +24,24 @@ class FirestorePollService {
 
       // Update the department document to include the new poll ID
       await _firestore.collection('departments').doc(departmentId).update({
-        'polls': FieldValue.arrayUnion([pollRef.id])
+        'polls': FieldValue.arrayUnion([pollRef.id]),
       });
 
       return pollRef.id;
     } catch (e) {
       print('Error creating poll: $e');
+      rethrow;
+    }
+  }
+
+  Stream<QuerySnapshot> getPollbyDepartmentID(String departmentId) {
+    try {
+      return _firestore
+          .collection('polls')
+          .where('departmentId', isEqualTo: departmentId)
+          .snapshots();
+    } catch (e) {
+      print('Error fetching polls: $e');
       rethrow;
     }
   }

@@ -225,8 +225,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 departmentService: _departmentService,
                 departmentId: widget.departmentId,
                 projectId: widget.projectId,
-                showAddButton: _isAdmin || _isHead,
-                onAddButtonPressed: _showAddPeopleDialog,
+   
               ),
               // Head tab
               HeadTab(
@@ -237,8 +236,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 isAdmin: _isAdmin,
                 isHead: _isHead,
                 projectId: widget.projectId,
-                showAddButton: _isAdmin || _isHead,
-                onAddButtonPressed: _showAddPeopleDialog,
+             
               ),
             ],
           );
