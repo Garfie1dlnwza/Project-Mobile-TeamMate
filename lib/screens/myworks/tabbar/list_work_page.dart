@@ -38,8 +38,8 @@ class _ListWorkPageState extends State<ListWorkPage> {
 
                 ListTile(
                   minTileHeight: 60,
-                  leading: Icon(Icons.work),
-                  title: Text('Work'),
+                  leading: Icon(Icons.task),
+                  title: Text('Task'),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
@@ -64,7 +64,7 @@ class _ListWorkPageState extends State<ListWorkPage> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) => CreaetPollPage(
+                            (context) => CreatePollPage(
                               projectId: widget.projectId,
                               departmentId: widget.departmentId,
                             ),

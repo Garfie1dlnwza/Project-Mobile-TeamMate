@@ -153,8 +153,9 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        centerTitle: true,
         title: Text(
-          'Create Work',
+          'Create New Task',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
@@ -171,14 +172,14 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                 controller: _titleController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.title, color: Colors.black),
-                  hintText: 'Work title (required)',
+                  hintText: 'Task title (required)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter a work title';
+                    return 'Please enter a task title';
                   }
                   return null;
                 },
@@ -264,10 +265,10 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
               ),
               SizedBox(height: 24),
 
-              // Create Work Button
+              // Create Task Button
               ElevatedButton(
                 onPressed: _createTask,
-                child: Text('Create Work'),
+                child: Text('Create Task'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   padding: EdgeInsets.symmetric(vertical: 16),
