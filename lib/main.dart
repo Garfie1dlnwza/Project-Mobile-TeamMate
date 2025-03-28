@@ -10,9 +10,11 @@ import 'package:teammate/screens/settings/edit_name.dart';
 import 'package:teammate/screens/myworks/work_page2.dart';
 import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(MyApp());
 }
