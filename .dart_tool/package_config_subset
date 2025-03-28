@@ -168,17 +168,12 @@ file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/firebase_ui_shared-
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/firebase_ui_shared-1.4.1/lib/
 fixnum
 3.1
-<<<<<<< HEAD
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/fixnum-1.1.1/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/fixnum-1.1.1/lib/
-flutter_hooks
-2.17
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_hooks-0.20.5/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_hooks-0.20.5/lib/
-=======
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/fixnum-1.1.1/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/fixnum-1.1.1/lib/
->>>>>>> d1cdf8f (Head can be add people)
+flutter_hooks
+2.17
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_hooks-0.20.5/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_hooks-0.20.5/lib/
 flutter_lints
 3.5
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_lints-5.0.0/
@@ -189,17 +184,12 @@ file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_native_spla
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_native_splash-2.4.5/lib/
 flutter_plugin_android_lifecycle
 3.6
-<<<<<<< HEAD
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.27/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.27/lib/
-flutter_polls
-2.17
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_polls-0.1.6/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_polls-0.1.6/lib/
-=======
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.27/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.27/lib/
->>>>>>> d1cdf8f (Head can be add people)
+flutter_polls
+2.17
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_polls-0.1.6/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_polls-0.1.6/lib/
 flutter_svg
 3.4
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_svg-2.0.17/
@@ -258,13 +248,8 @@ file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image-4.5.4/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image-4.5.4/lib/
 image_picker
 3.3
-<<<<<<< HEAD
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker-1.1.2/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker-1.1.2/lib/
-=======
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image_picker-1.1.2/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image_picker-1.1.2/lib/
->>>>>>> d1cdf8f (Head can be add people)
 image_picker_android
 3.6
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image_picker_android-0.8.12+22/
@@ -367,17 +352,12 @@ file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/path_provider_platf
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/path_provider_platform_interface-2.1.2/lib/
 path_provider_windows
 3.2
-<<<<<<< HEAD
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_windows-2.3.0/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_windows-2.3.0/lib/
-percent_indicator
-2.12
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/percent_indicator-4.2.4/
-file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/percent_indicator-4.2.4/lib/
-=======
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/path_provider_windows-2.3.0/lib/
->>>>>>> d1cdf8f (Head can be add people)
+percent_indicator
+2.12
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/percent_indicator-4.2.4/
+file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/percent_indicator-4.2.4/lib/
 petitparser
 3.5
 file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/petitparser-6.1.0/

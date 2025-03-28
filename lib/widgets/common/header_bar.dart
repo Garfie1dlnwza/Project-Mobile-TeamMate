@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:teammate/widgets/common/profile.dart';
 
 class Headbar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
@@ -44,7 +45,7 @@ class _HeadbarState extends State<Headbar> {
         ),
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: Image.asset('assets/images/default.png'),
+          child: ProfileAvatar(name: _userName ?? 'Unknow'),
         ),
         actions: [
           Image.asset(
@@ -65,7 +66,7 @@ class _HeadbarState extends State<Headbar> {
 
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: Image.asset('assets/images/default.png'),
+          child: ProfileAvatar(name: _userName ?? 'Unknow'),
         ),
         actions: [
           GestureDetector(
@@ -89,7 +90,7 @@ class _HeadbarState extends State<Headbar> {
         ),
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: Image.asset('assets/images/default.png'),
+          child: ProfileAvatar(name: _userName ?? 'Unknow'),
         ),
         actions: [Image.asset('assets/images/noti.png')],
         actionsPadding: EdgeInsets.fromLTRB(0, 0, 20, 0),

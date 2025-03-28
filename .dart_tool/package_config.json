@@ -267,7 +267,7 @@
     },
     {
       "name": "flutter_hooks",
-      "rootUri": "file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_hooks-0.20.5",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_hooks-0.20.5",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -297,7 +297,7 @@
     },
     {
       "name": "flutter_polls",
-      "rootUri": "file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_polls-0.1.6",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_polls-0.1.6",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -399,11 +399,7 @@
     },
     {
       "name": "image_picker",
-<<<<<<< HEAD
-      "rootUri": "file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker-1.1.2",
-=======
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/image_picker-1.1.2",
->>>>>>> d1cdf8f (Head can be add people)
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -565,7 +561,7 @@
     },
     {
       "name": "percent_indicator",
-      "rootUri": "file:///C:/Users/HERO/AppData/Local/Pub/Cache/hosted/pub.dev/percent_indicator-4.2.4",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/percent_indicator-4.2.4",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
@@ -870,11 +866,7 @@
       "languageVersion": "3.7"
     }
   ],
-<<<<<<< HEAD
-  "generated": "2025-03-28T09:47:01.407815Z",
-=======
-  "generated": "2025-03-28T10:21:53.279448Z",
->>>>>>> d1cdf8f (Head can be add people)
+  "generated": "2025-03-28T11:44:57.885789Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.5/flutter",

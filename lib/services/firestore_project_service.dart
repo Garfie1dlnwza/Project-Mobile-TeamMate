@@ -20,7 +20,6 @@ class FirestoreProjectService {
     }
   }
 
-  // ดึงสตรีมของโปรเจคสำหรับผู้ใช้
   Stream<QuerySnapshot> getUserProjectsStream(List<String> projectIds) {
     if (projectIds.isEmpty) {
       return Stream.empty();
@@ -38,6 +37,31 @@ class FirestoreProjectService {
     } catch (e) {
       print("Error getting project by ID: $e");
       rethrow;
+    }
+  }
+
+  Future<String?> getProjectHeadId(String projectId) async {
+    try {
+      final projectDoc =
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .doc(projectId)
+              .get();
+
+      if (!projectDoc.exists) {
+        return null;
+      }
+
+      final projectData = projectDoc.data();
+      if (projectData == null) {
+        return null;
+      }
+
+      // Return the head field from the project document
+      return projectData['head'] as String?;
+    } catch (e) {
+      print('Error getting project head: $e');
+      return null;
     }
   }
 
@@ -141,5 +165,30 @@ class FirestoreProjectService {
       print("Error checking if user is head of project: $e");
       return false;
     }
+  }
+}
+
+Future<String?> getProjectHeadId(String projectId) async {
+  try {
+    final projectDoc =
+        await FirebaseFirestore.instance
+            .collection('projects')
+            .doc(projectId)
+            .get();
+
+    if (!projectDoc.exists) {
+      return null;
+    }
+
+    final projectData = projectDoc.data();
+    if (projectData == null) {
+      return null;
+    }
+
+    // Return the head field from the project document
+    return projectData['head'] as String?;
+  } catch (e) {
+    print('Error getting project head: $e');
+    return null;
   }
 }

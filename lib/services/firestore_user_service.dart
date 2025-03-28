@@ -2,8 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 class FirestoreUserService {
-  final CollectionReference _usersCollection = FirebaseFirestore.instance.collection('users');
-  
+  final CollectionReference _usersCollection = FirebaseFirestore.instance
+      .collection('users');
+
   static Future<void> initialize() async {
     await Firebase.initializeApp();
   }
@@ -13,6 +14,7 @@ class FirestoreUserService {
     String userId,
     String name,
     String email, {
+    String? phoneNumber,
     List<String>? projectIds,
     String? notiId,
   }) async {
@@ -23,6 +25,8 @@ class FirestoreUserService {
         'email': email,
         'projectIds': projectIds ?? [],
         'notiId': notiId,
+        'phone': phoneNumber,
+        'imageURL': '',
         'lastLogin': DateTime.now(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -49,7 +53,7 @@ class FirestoreUserService {
         print("User not found for ID: $id");
         return null;
       }
-      
+
       Map<String, dynamic>? data = userDoc.data() as Map<String, dynamic>?;
       return data?['name'] as String?;
     } catch (e) {
@@ -127,10 +131,11 @@ class FirestoreUserService {
   Future<String?> getUserIdByEmail(String email) async {
     try {
       // Query the users collection to find a user with the matching email
-      QuerySnapshot querySnapshot = await _usersCollection
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+      QuerySnapshot querySnapshot =
+          await _usersCollection
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
 
       // If a user is found, return their user ID
       if (querySnapshot.docs.isNotEmpty) {

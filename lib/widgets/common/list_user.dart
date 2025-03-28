@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/services/firestore_department_service.dart';
-import 'package:teammate/utils/member.dart';
+import 'package:teammate/theme/app_colors.dart';
+import 'package:teammate/widgets/common/profile.dart';
 
 class UserListItem extends StatelessWidget {
   final String userId;
@@ -70,6 +71,7 @@ class UserListItem extends StatelessWidget {
 
         final String userName = userData['name'] ?? 'No name';
         final String userEmail = userData['email'] ?? 'No email';
+        final String? profileImageUrl = userData['profileImageUrl'];
 
         // Filter by search query if needed
         if (searchQuery.isNotEmpty) {
@@ -82,10 +84,6 @@ class UserListItem extends StatelessWidget {
           }
         }
 
-        // Get initials for avatar
-        final String initials = PeopleUtils.getInitials(userName);
-        final Color avatarColor = PeopleUtils.getAvatarColor(userName);
-
         return Card(
           elevation: 0,
           margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -97,17 +95,10 @@ class UserListItem extends StatelessWidget {
               horizontal: 16,
               vertical: 8,
             ),
-            leading: CircleAvatar(
-              backgroundColor: avatarColor,
-              radius: 24,
-              child: Text(
-                initials,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
+            leading: ProfileAvatar(
+              name: userName,
+              size: 48,
+              profileImageUrl: profileImageUrl,
             ),
             title: Row(
               children: [
@@ -148,6 +139,13 @@ class UserListItem extends StatelessWidget {
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
             ),
+            trailing:
+                showOptions
+                    ? IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () {},
+                    )
+                    : null,
           ),
         );
       },
