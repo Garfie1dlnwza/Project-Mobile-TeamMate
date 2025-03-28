@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addPeople.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/seach_member.dart';
-import 'package:teammate/widgets/common/tab_admin.dart';
-import 'package:teammate/widgets/common/tab_member.dart';
+import 'package:teammate/widgets/common/tab/tab_admin.dart';
+import 'package:teammate/widgets/common/tab/tab_member.dart';
+import 'package:teammate/widgets/common/tab/tab_head.dart';
 
 class PeoplePage extends StatefulWidget {
   final String projectId;
@@ -27,19 +29,26 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
   final FirestoreUserService _userService = FirestoreUserService();
+  final FirestoreProjectService _projectService = FirestoreProjectService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
+  bool _isHead = false;
   bool _isAdmin = false;
   bool _isLoading = true;
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  String? _projectHeadId; // Add variable to store the project head ID
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _checkAdminStatus();
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+    ); // Update tab count to 3
+    _checkHeadOrAdminStatus();
+    _fetchProjectHead(); // Add method to fetch project head
   }
 
   @override
@@ -49,20 +58,54 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _fetchProjectHead() async {
+    try {
+      final headId = await _projectService.getHeadIdByProjectId(
+        widget.projectId,
+      );
+      setState(() {
+        _projectHeadId = headId;
+      });
+    } catch (e) {
+      print('Error fetching project head: $e');
+    }
+  }
+
+  Future<void> _checkHeadOrAdminStatus() async {
     if (_currentUserId != null) {
       final isAdmin = await _departmentService.isUserAdminOfDepartment(
         widget.departmentId,
         _currentUserId!,
       );
-
+      final isHead = await _projectService.isUserHeadOfProject(
+        widget.projectId,
+        _currentUserId,
+      );
       setState(() {
+        _isHead = isHead;
         _isAdmin = isAdmin;
         _isLoading = false;
       });
     } else {
       setState(() => _isLoading = false);
     }
+  }
+
+  // Method to show add people dialog
+  void _showAddPeopleDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AddPeopleDialog(
+            title: 'ADD PEOPLE',
+            projectId: widget.projectId,
+            departmentId: widget.departmentId,
+          ),
+    ).then((result) {
+      if (result == true) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -98,7 +141,11 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 unselectedLabelColor: Colors.grey,
                 dividerColor: Colors.transparent,
                 indicatorWeight: 3,
-                tabs: const [Tab(text: 'ALL MEMBERS'), Tab(text: 'ADMINS')],
+                tabs: const [
+                  Tab(text: 'ALL MEMBERS'),
+                  Tab(text: 'ADMINS'),
+                  Tab(text: 'HEAD'), // Add new tab for project head
+                ],
               ),
             ],
           ),
@@ -166,6 +213,8 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 departmentService: _departmentService,
                 departmentId: widget.departmentId,
                 projectId: widget.projectId,
+                showAddButton: _isAdmin || _isHead,
+                onAddButtonPressed: _showAddPeopleDialog,
               ),
               // Admins tab
               AdminsTab(
@@ -176,37 +225,25 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 departmentService: _departmentService,
                 departmentId: widget.departmentId,
                 projectId: widget.projectId,
+                showAddButton: _isAdmin || _isHead,
+                onAddButtonPressed: _showAddPeopleDialog,
+              ),
+              // Head tab
+              HeadTab(
+                headId: _projectHeadId,
+                searchQuery: _searchQuery,
+                userService: _userService,
+                projectService: _projectService,
+                isAdmin: _isAdmin,
+                isHead: _isHead,
+                projectId: widget.projectId,
+                showAddButton: _isAdmin || _isHead,
+                onAddButtonPressed: _showAddPeopleDialog,
               ),
             ],
           );
         },
       ),
-      floatingActionButton:
-          _isAdmin
-              ? FloatingActionButton.extended(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder:
-                        (context) => AddPeopleDialog(
-                          title: 'ADD PEOPLE',
-                          projectId: widget.projectId,
-                          departmentId: widget.departmentId,
-                        ),
-                  ).then((result) {
-                    if (result == true) {
-                      setState(() {});
-                    }
-                  });
-                },
-                backgroundColor: Theme.of(context).primaryColor,
-                icon: const Icon(Icons.person_add, color: Colors.white),
-                label: const Text(
-                  'ADD PEOPLE',
-                  style: TextStyle(color: Colors.white),
-                ),
-              )
-              : null,
     );
   }
 }

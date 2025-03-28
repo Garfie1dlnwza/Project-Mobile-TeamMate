@@ -19,7 +19,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
-  // final TextEditingController _phoneNumberController = TextEditingController();
+  final TextEditingController _phoneNumberController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirestoreUserService _userService = FirestoreUserService();
@@ -33,7 +33,7 @@ class _RegisterPageState extends State<RegisterPage> {
   void dispose() {
     _nameController.dispose();
     _surnameController.dispose();
-    // _phoneNumberController.dispose();
+    _phoneNumberController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -67,6 +67,7 @@ class _RegisterPageState extends State<RegisterPage> {
           user.uid,
           fullName,
           user.email ?? _emailController.text.trim(),
+          phoneNumber:  _phoneNumberController.text.trim(),
           projectIds: [],
           notiId: notiId,
         );
@@ -207,23 +208,23 @@ class _RegisterPageState extends State<RegisterPage> {
                             const SizedBox(height: 20),
 
                             // Phone Number Field
-                            // AuthTextField(
-                            //   controller: _phoneNumberController,
-                            //   label: "Phone Number",
-                            //   prefixIcon: Icons.phone,
-                            //   keyboardType: TextInputType.phone,
-                            //   validator: (value) {
-                            //     if (value == null || value.isEmpty) {
-                            //       return 'Please enter your phone number';
-                            //     }
-                            //     // Basic phone number validation
-                            //     if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
-                            //       return 'Please enter a valid 10-digit phone number';
-                            //     }
-                            //     return null;
-                            //   },
-                            // ),
-                            // const SizedBox(height: 20),
+                            AuthTextField(
+                              controller: _phoneNumberController,
+                              label: "Phone Number",
+                              prefixIcon: Icons.phone,
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter your phone number';
+                                }
+                                // Basic phone number validation
+                                if (!RegExp(r'^[0-9]{10}$').hasMatch(value)) {
+                                  return 'Please enter a valid 10-digit phone number';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
 
                             // Email Field
                             AuthTextField(
