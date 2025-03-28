@@ -12,7 +12,7 @@ import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -65,7 +65,7 @@ ThemeData customLightTheme = ThemeData.light().copyWith(
     onSecondary: Colors.black,
   ),
   scaffoldBackgroundColor: Colors.white,
-  
+
   textTheme: ThemeData.light().textTheme.apply(fontFamily: 'Poppins'),
 );
 

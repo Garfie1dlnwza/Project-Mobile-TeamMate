@@ -54,9 +54,11 @@ dependencies:
   flutter_polls: ^0.1.6
 
   file_picker: ^6.1.1
-  path_provider: ^2.1.1
+  path_provider: ^2.1.5
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  camera: ^0.11.1
+  path: ^1.9.1
   
 
 dev_dependencies:

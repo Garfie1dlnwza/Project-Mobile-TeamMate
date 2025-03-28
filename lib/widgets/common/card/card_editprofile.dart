@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/hardware/take_picture_screen.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/profile.dart';
+
+import 'dart:async';
+import 'dart:io';
+
+import 'package:camera/camera.dart';
 
 class ProfileEditCard extends StatefulWidget {
   final Function? onImageUpdated;
@@ -110,9 +116,22 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
                       color: AppColors.primary,
                     ),
                   ),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _selectImageFromCamera();
+                  onTap: () async {
+                    final cameras = await availableCameras();
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) =>
+                                TakePictureScreen(cameras: cameras),
+                      ),
+                    );
+
+                    // Handle the returned image file
+                    if (result != null && result is File) {
+                      // Do something with the image, like uploading or displaying
+                      print('Image captured: ${result.path}');
+                    }
                   },
                 ),
                 const SizedBox(height: 10),
