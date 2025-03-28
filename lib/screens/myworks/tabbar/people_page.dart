@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addPeople.dart';
 import 'package:teammate/services/firestore_department_service.dart';
@@ -27,8 +28,10 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
   final FirestoreUserService _userService = FirestoreUserService();
+  final FirestoreProjectService _projectService = FirestoreProjectService();
   final String? _currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
+  bool _isHead = false;
   bool _isAdmin = false;
   bool _isLoading = true;
   late TabController _tabController;
@@ -39,7 +42,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _checkAdminStatus();
+    _checkHeadOrAdminStatus();
   }
 
   @override
@@ -49,14 +52,18 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _checkAdminStatus() async {
+  Future<void> _checkHeadOrAdminStatus() async {
     if (_currentUserId != null) {
       final isAdmin = await _departmentService.isUserAdminOfDepartment(
         widget.departmentId,
         _currentUserId!,
       );
-
+      final isHead = await _projectService.isUserHeadOfProject(
+        widget.projectId,
+        _currentUserId,
+      );
       setState(() {
+        _isHead = isHead;
         _isAdmin = isAdmin;
         _isLoading = false;
       });
@@ -182,7 +189,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
         },
       ),
       floatingActionButton:
-          _isAdmin
+          (_isAdmin || _isHead)
               ? FloatingActionButton.extended(
                 onPressed: () {
                   showDialog(
@@ -199,7 +206,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                     }
                   });
                 },
-                backgroundColor: Theme.of(context).primaryColor,
+                backgroundColor: AppColors.primary,
                 icon: const Icon(Icons.person_add, color: Colors.white),
                 label: const Text(
                   'ADD PEOPLE',
