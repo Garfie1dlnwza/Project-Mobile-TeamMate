@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/utils/date.dart';
 import 'package:teammate/widgets/works/poll.dart';
 import 'package:teammate/widgets/works/post.dart';
-import 'package:teammate/widgets/works/task.dart';
+import 'package:teammate/widgets/works/task_content.dart';
 
 class FeedItemCard extends StatefulWidget {
   final Map<String, dynamic> item;

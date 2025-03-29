@@ -196,7 +196,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
       backgroundColor: Colors.grey[50],
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        centerTitle: false,
+        centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.primary,

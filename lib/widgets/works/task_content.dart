@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:teammate/screens/details/detail_task.dart';
+import 'package:teammate/screens/details/task_detail_admin_page.dart';
+import 'package:teammate/screens/details/task_detail_page.dart';
+import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/utils/date.dart';
 
 class TaskContent extends StatelessWidget {
@@ -13,11 +17,13 @@ class TaskContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final String title = data['taskTitle'] ?? 'Untitled Task';
     final bool isSubmitted = data['isSubmit'] ?? false;
+    final bool isApproved = data['isApproved'] ?? false;
+    final bool isRejected = data['isRejected'] ?? false;
     final Timestamp endDate = data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
-    final bool isOverdue = DateTime.now().isAfter(dueDate) && !isSubmitted;
+    final bool isOverdue = DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
     final Duration timeLeft = dueDate.difference(DateTime.now());
-    final bool isUrgent = timeLeft.inDays <= 2 && !isSubmitted;
+    final bool isUrgent = timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
 
     return Card(
       elevation: 1.5,
@@ -93,16 +99,7 @@ class TaskContent extends StatelessWidget {
                   backgroundColor: Colors.grey[200]!,
                   onPressed: () {
                     // Navigate to details page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => TaskDetailsPage(
-                              data: data,
-                              themeColor: themeColor,
-                            ),
-                      ),
-                    );
+                    _checkUserRoleAndNavigate(context);
                   },
                 ),
                 const SizedBox(width: 10),
@@ -112,6 +109,76 @@ class TaskContent extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _checkUserRoleAndNavigate(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      // Navigate to regular details page if not logged in
+      _navigateToDetailsPage(context, false);
+      return;
+    }
+
+    final userId = currentUser.uid;
+
+    final departmentId = data['departmentId'];
+    final department = await FirestoreDepartmentService().getDepartmentById(
+      departmentId,
+    );
+    final projectId = department['projectId'];
+
+    bool isAdminOrHead = false;
+    print('✅ User ID: $userId');
+    print('✅ Department ID: $departmentId');
+    print('✅ Project ID: $projectId');
+
+    try {
+      // Check if user is head of the project
+      final FirestoreProjectService projectService = FirestoreProjectService();
+      final isHead = await projectService.isUserHeadOfProject(
+        projectId,
+        userId,
+      );
+
+      // Check if user is admin of the department
+      final FirestoreDepartmentService departmentService =
+          FirestoreDepartmentService();
+      final isAdmin = await departmentService.isUserAdminOfDepartment(
+        departmentId,
+        userId,
+      );
+
+      isAdminOrHead = isHead || isAdmin;
+    } catch (e) {
+      print('Error checking user role: $e');
+    }
+
+    // Navigate to the appropriate page
+    _navigateToDetailsPage(context, isAdminOrHead);
+  }
+
+  void _navigateToDetailsPage(BuildContext context, bool isAdminOrHead) {
+    // if (isAdminOrHead) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => TaskDetailsAdminPage(
+              data: data,
+              themeColor: themeColor,
+              isAdminOrHead: isAdminOrHead,
+            ),
+      ),
+    );
+    // } else {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(
+    //       builder:
+    //           (context) => TaskDetailsPage(data: data, themeColor: themeColor),
+    //     ),
+    //   );
+    // }
   }
 
   Widget _buildActionButton({
@@ -137,14 +204,18 @@ class TaskContent extends StatelessWidget {
   }
 
   Color _getPriorityColor(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (isSubmitted) return Colors.green[600]!;
+    if (data['isApproved'] ?? false) return Colors.green[600]!;
+    if (data['isRejected'] ?? false) return Colors.red[400]!;
+    if (isSubmitted) return Colors.blue[600]!;
     if (isOverdue) return Colors.red[600]!;
     if (isUrgent) return Colors.orange[600]!;
     return Colors.grey[700]!;
   }
 
   String _getPriorityText(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (isSubmitted) return 'COMPLETED';
+    if (data['isApproved'] ?? false) return 'APPROVED';
+    if (data['isRejected'] ?? false) return 'REJECTED';
+    if (isSubmitted) return 'SUBMITTED';
     if (isOverdue) return 'OVERDUE';
     if (isUrgent) return 'URGENT';
     return 'NORMAL';

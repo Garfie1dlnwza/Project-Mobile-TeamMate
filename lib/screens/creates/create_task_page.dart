@@ -186,15 +186,18 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
         // Create task document
         DocumentReference taskRef = firestore.collection('tasks').doc();
+        final taskId = taskRef.id; // Get the generated task ID
 
         // Prepare task data
         Map<String, dynamic> taskData = {
+          'taskId': taskId,
           'taskTitle': _titleController.text.trim(),
           'taskDescription': _descriptionController.text.trim(),
           'startTask': Timestamp.now(), // Current timestamp as start
           'endTask': Timestamp.fromDate(_dueDate!),
           'creatorId': currentUser.uid,
           'isSubmit': false,
+          'isApproved': false,
           'attachments': _attachments,
           'createdAt': FieldValue.serverTimestamp(),
           'departmentId': widget.departmentId, // Add department ID
@@ -538,9 +541,9 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                   // Display attachments with better styling
                   if (_attachments.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    ..._attachments
-                        .map((attachment) => _buildAttachmentItem(attachment))
-                        ,
+                    ..._attachments.map(
+                      (attachment) => _buildAttachmentItem(attachment),
+                    ),
                   ],
 
                   const SizedBox(height: 40),

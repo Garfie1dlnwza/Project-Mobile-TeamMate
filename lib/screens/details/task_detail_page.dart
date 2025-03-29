@@ -18,6 +18,7 @@ class TaskDetailsPage extends StatelessWidget {
     final String description =
         data['taskDescription'] ?? 'No description provided';
     final bool isSubmitted = data['isSubmit'] ?? false;
+    final bool isApproved = data['isApproved'] ?? false;
     final Timestamp endDate = data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
     final bool isOverdue = DateTime.now().isAfter(dueDate) && !isSubmitted;
@@ -179,4 +180,6 @@ class TaskDetailsPage extends StatelessWidget {
     if (isUrgent) return 'URGENT';
     return 'NORMAL';
   }
+
+  
 }

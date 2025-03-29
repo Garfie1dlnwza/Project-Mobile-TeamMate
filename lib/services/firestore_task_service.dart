@@ -23,14 +23,18 @@ class FirestoreTaskService {
       // Create task document
       DocumentReference taskRef = _firestore.collection('tasks').doc();
 
+      final String taskId = taskRef.id; // Get the generated task ID
+
       // Prepare task data with comment subcollection support
       Map<String, dynamic> taskData = {
+        'taskId': taskId,
         'taskTitle': taskTitle.trim(),
         'taskDescription': taskDescription.trim(),
         'startTask': Timestamp.now(), // Current timestamp as start
         'endTask': Timestamp.fromDate(endTask),
         'creatorId': currentUser.uid,
         'isSubmit': false,
+        'isApproved': false,
         'attachments': attachments ?? [],
         'createdAt': FieldValue.serverTimestamp(),
         'departmentId': departmentId,
