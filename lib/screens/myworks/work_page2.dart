@@ -48,7 +48,7 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                   height: 50,
                   width: 8.5,
                   decoration: BoxDecoration(
-                    color: Colors.amber,
+                    color: const Color.fromARGB(255, 160, 164, 168),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -72,7 +72,7 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                   height: 50,
                   width: 8.5,
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 249, 72, 255),
+                    color: const Color.fromARGB(255, 160, 164, 168),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),

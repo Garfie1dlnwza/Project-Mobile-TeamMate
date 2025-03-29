@@ -39,12 +39,28 @@ class _PostPageState extends State<PostPage>
   bool _isLoading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> listShowWork = [];
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
     _loadCombinedFeed();
+
+    _scrollController.addListener(() {
+      if (_scrollController.offset > 100 && !_isScrolled) {
+        setState(() => _isScrolled = true);
+      } else if (_scrollController.offset <= 100 && _isScrolled) {
+        setState(() => _isScrolled = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCombinedFeed() async {
@@ -53,7 +69,6 @@ class _PostPageState extends State<PostPage>
         _isLoading = true;
       });
 
-      // Set up listeners for each content type
       _taskService.getTaskbyDepartmentID(widget.departmentId).listen((
         tasksSnapshot,
       ) {
@@ -81,10 +96,8 @@ class _PostPageState extends State<PostPage>
   }
 
   void _updateCombinedFeed(QuerySnapshot snapshot, String type) {
-    // Remove existing items of this type
     listShowWork.removeWhere((item) => item['type'] == type);
 
-    // Add new items with type information
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       listShowWork.add({
@@ -95,14 +108,12 @@ class _PostPageState extends State<PostPage>
       });
     }
 
-    // Sort by createdAt (newest first)
     listShowWork.sort((a, b) {
       final Timestamp aTime = a['createdAt'] as Timestamp;
       final Timestamp bTime = b['createdAt'] as Timestamp;
       return bTime.compareTo(aTime);
     });
 
-    // Update the UI
     setState(() {
       _isLoading = false;
     });
@@ -174,20 +185,13 @@ class _PostPageState extends State<PostPage>
   }
 
   Widget _buildHeader() {
-    return Container(
-      height: 150,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      height: _isScrolled ? 100 : 150,
       width: double.infinity,
       decoration: BoxDecoration(
         color: widget.color,
         borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: const Color.fromARGB(255, 18, 18, 18).withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14.0),
@@ -195,31 +199,53 @@ class _PostPageState extends State<PostPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_isLoading)
-              const CircularProgressIndicator(color: Colors.white)
+              const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
             else if (_errorMessage != null)
               Text(_errorMessage!, style: const TextStyle(color: Colors.white))
             else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$_projectName : $_departmentName',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 25,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 200),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: _isScrolled ? 20 : 25,
+                      ),
+                      child:
+                          _isScrolled
+                              ? // When scrolled - single line with ellipsis
+                              Text(
+                                '$_projectName : $_departmentName',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              )
+                              : // When not scrolled - can use more space
+                              Text(
+                                '$_projectName : $_departmentName',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
                     ),
-                  ),
-                  const SizedBox(height: 65),
-                  Text(
-                    'Project Manager: $_headName',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+                    if (!_isScrolled) ...[
+                      const Spacer(),
+                      Text(
+                        'Project Manager: $_headName',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ],
+                  ],
+                ),
               ),
           ],
         ),
@@ -235,10 +261,7 @@ class _PostPageState extends State<PostPage>
           MaterialPageRoute(
             builder: (context) => CreatePost(departmentId: widget.departmentId),
           ),
-        ).then((_) {
-          // Refresh the feed when returning from create post
-          _loadCombinedFeed();
-        });
+        ).then((_) => _loadCombinedFeed());
       },
       child: Container(
         height: 55,
@@ -248,30 +271,28 @@ class _PostPageState extends State<PostPage>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withOpacity(0.1),
               spreadRadius: 1,
-              blurRadius: 2,
-              offset: const Offset(0, 3),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(30, 0, 0, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Image.asset(
-                'assets/images/default.png',
-                opacity: const AlwaysStoppedAnimation(0.5),
+              CircleAvatar(
+                backgroundColor: widget.color.withOpacity(0.1),
+                child: Icon(Icons.edit, color: widget.color),
               ),
-              const SizedBox(width: 30),
+              const SizedBox(width: 16),
               Text(
                 "Post something...",
                 style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 18,
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.w300,
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -282,68 +303,84 @@ class _PostPageState extends State<PostPage>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.feed_outlined, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No content yet',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[700],
-              fontWeight: FontWeight.w500,
-            ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.feed_outlined, size: 64, color: Colors.grey[400]),
+        const SizedBox(height: 16),
+        Text(
+          'No content yet',
+          style: TextStyle(
+            fontSize: 18,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Be the first to post something!',
-            style: TextStyle(color: Colors.grey[500]),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => CreatePost(departmentId: widget.departmentId),
+              ),
+            ).then((_) => _loadCombinedFeed());
+          },
+          style: TextButton.styleFrom(foregroundColor: widget.color),
+          child: const Text('Create the first post!'),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(8, 20, 8, 0),
-        child: Column(
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 20),
-            _buildCreatePostBox(),
-            const SizedBox(height: 20),
-
-            // Feed content
-            Expanded(
-              child:
-                  _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : listShowWork.isEmpty
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                        onRefresh: () async {
-                          // Refresh the feed
-                          await _loadCombinedFeed();
-                        },
-                        child: ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          itemCount: listShowWork.length,
-                          itemBuilder: (context, index) {
-                            return FeedItemCard(
-                              item: listShowWork[index],
-                              themeColor: widget.color,
-                            );
-                          },
-                        ),
-                      ),
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 20, 8, 0),
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 16),
+                    _buildCreatePostBox(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          ];
+        },
+        body:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : listShowWork.isEmpty
+                ? _buildEmptyState()
+                : RefreshIndicator(
+                  color: widget.color,
+                  onRefresh: _loadCombinedFeed,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(top: 8, bottom: 20),
+                    itemCount: listShowWork.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        child: FeedItemCard(
+                          item: listShowWork[index],
+                          themeColor: widget.color,
+                        ),
+                      );
+                    },
+                  ),
+                ),
       ),
     );
   }
