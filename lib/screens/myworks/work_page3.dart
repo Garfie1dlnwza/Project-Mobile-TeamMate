@@ -12,12 +12,12 @@ class WorkPageThree extends StatefulWidget {
   final String projectId;
 
   const WorkPageThree({
-    Key? key,
+    super.key,
     required this.departmentId,
     required this.departmentName,
     required this.color,
     required this.projectId,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkPageThree> createState() => _WorkPageThreeState();

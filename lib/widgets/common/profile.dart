@@ -9,13 +9,13 @@ class ProfileAvatar extends StatelessWidget {
   final String? profileImageUrl;
 
   const ProfileAvatar({
-    Key? key,
+    super.key,
     required this.name,
     this.size = 36.0,
     this.backgroundColor,
     this.textColor,
     this.profileImageUrl,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

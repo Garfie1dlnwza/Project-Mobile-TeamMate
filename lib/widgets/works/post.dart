@@ -6,8 +6,7 @@ class PostContent extends StatefulWidget {
   final Map<String, dynamic> data;
   final Color themeColor;
 
-  const PostContent({Key? key, required this.data, required this.themeColor})
-    : super(key: key);
+  const PostContent({super.key, required this.data, required this.themeColor});
 
   @override
   State<PostContent> createState() => _PostContentState();
@@ -69,7 +68,7 @@ class _PostContentState extends State<PostContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${creatorName}',
+                  '$creatorName',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[800],

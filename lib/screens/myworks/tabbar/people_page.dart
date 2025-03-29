@@ -75,7 +75,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
     if (_currentUserId != null) {
       final isAdmin = await _departmentService.isUserAdminOfDepartment(
         widget.departmentId,
-        _currentUserId!,
+        _currentUserId,
       );
       final isHead = await _projectService.isUserHeadOfProject(
         widget.projectId,

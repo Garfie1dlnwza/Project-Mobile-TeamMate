@@ -9,7 +9,7 @@ import 'package:uuid/uuid.dart';
 // Import the WorkPageThree
 
 class CreateProjectPage extends StatefulWidget {
-  const CreateProjectPage({Key? key}) : super(key: key);
+  const CreateProjectPage({super.key});
 
   @override
   State<CreateProjectPage> createState() => _CreateProjectPageState();
@@ -287,7 +287,6 @@ class _CreateProjectPageState extends State<CreateProjectPage>
           primary: _primaryColor,
           secondary: _accentColor,
           surface: _backgroundColor,
-          background: _backgroundColor,
           onPrimary: Colors.white,
           onSurface: _textColor,
         ),
@@ -342,8 +341,8 @@ class _CreateProjectPageState extends State<CreateProjectPage>
           ),
         ),
         checkboxTheme: CheckboxThemeData(
-          fillColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
               return _primaryColor;
             }
             return null;

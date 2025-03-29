@@ -3,7 +3,6 @@ import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/dialog/dialog_empty.dart';
 import 'package:teammate/widgets/common/list_user.dart';
-import 'package:teammate/theme/app_colors.dart';
 
 class AdminsTab extends StatelessWidget {
   final List<dynamic> adminIds;

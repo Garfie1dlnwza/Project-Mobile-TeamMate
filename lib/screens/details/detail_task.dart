@@ -7,10 +7,10 @@ class TaskDetailsPage extends StatelessWidget {
   final Color themeColor;
 
   const TaskDetailsPage({
-    Key? key,
+    super.key,
     required this.data,
     required this.themeColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +25,7 @@ class TaskDetailsPage extends StatelessWidget {
     final bool isUrgent = timeLeft.inDays <= 2 && !isSubmitted;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Details'),
-        backgroundColor: themeColor,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Task Details'), elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

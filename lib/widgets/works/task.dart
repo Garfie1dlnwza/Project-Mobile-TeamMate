@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:teammate/screens/detail/detail_task.dart';
+import 'package:teammate/screens/details/detail_task.dart';
 import 'package:teammate/utils/date.dart';
 
 class TaskContent extends StatelessWidget {
   final Map<String, dynamic> data;
   final Color themeColor;
 
-  const TaskContent({Key? key, required this.data, required this.themeColor})
-    : super(key: key);
+  const TaskContent({super.key, required this.data, required this.themeColor});
 
   @override
   Widget build(BuildContext context) {
@@ -107,15 +106,6 @@ class TaskContent extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 10),
-                _buildActionButton(
-                  icon: isSubmitted ? Icons.edit : Icons.check,
-                  label: isSubmitted ? 'Update' : 'Submit',
-                  color: Colors.white,
-                  backgroundColor: Colors.grey[800]!,
-                  onPressed: () {
-                    // Submit or update logic
-                  },
-                ),
               ],
             ),
           ],

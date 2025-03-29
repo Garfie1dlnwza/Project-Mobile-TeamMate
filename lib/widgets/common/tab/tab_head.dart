@@ -15,7 +15,7 @@ class HeadTab extends StatelessWidget {
   final String projectId;
 
   const HeadTab({
-    Key? key,
+    super.key,
     required this.headId,
     required this.searchQuery,
     required this.userService,
@@ -23,7 +23,7 @@ class HeadTab extends StatelessWidget {
     required this.isAdmin,
     required this.isHead,
     required this.projectId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

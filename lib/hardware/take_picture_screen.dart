@@ -7,7 +7,7 @@ import 'package:path_provider/path_provider.dart';
 class TakePictureScreen extends StatefulWidget {
   final List<CameraDescription> cameras;
 
-  const TakePictureScreen({Key? key, required this.cameras}) : super(key: key);
+  const TakePictureScreen({super.key, required this.cameras});
 
   @override
   _TakePictureScreenState createState() => _TakePictureScreenState();

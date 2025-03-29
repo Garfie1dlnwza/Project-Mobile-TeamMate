@@ -101,7 +101,7 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
         }
         return;
       }
-      print('departmentData: ${_departmentData}');
+      print('departmentData: $_departmentData');
 
       // Check if user is admin so : don't add to users
       List<dynamic> adminList = _departmentData?['admins'] ?? [];

@@ -33,7 +33,7 @@ class _HeadbarState extends State<Headbar> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'Hello, ${username}',
+                'Hello, $username',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
               Text(

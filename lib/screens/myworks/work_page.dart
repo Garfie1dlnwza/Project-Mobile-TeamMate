@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:teammate/screens/creates/create_project_page.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/widgets/common/card/card_project.dart';

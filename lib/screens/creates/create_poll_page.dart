@@ -9,10 +9,10 @@ class CreatePollPage extends StatefulWidget {
   final String departmentId;
 
   const CreatePollPage({
-    Key? key,
+    super.key,
     required this.projectId,
     required this.departmentId,
-  }) : super(key: key);
+  });
 
   @override
   _CreatePollPageState createState() => _CreatePollPageState();

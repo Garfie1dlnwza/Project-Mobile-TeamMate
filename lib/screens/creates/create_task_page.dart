@@ -31,7 +31,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   bool _isCreating = false;
 
   // Attachment handling
-  List<String> _attachments = [];
+  final List<String> _attachments = [];
 
   void _selectDueDateTime() async {
     // Date selection
@@ -540,7 +540,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
                     const SizedBox(height: 16),
                     ..._attachments
                         .map((attachment) => _buildAttachmentItem(attachment))
-                        .toList(),
+                        ,
                   ],
 
                   const SizedBox(height: 40),

@@ -9,8 +9,7 @@ class FeedItemCard extends StatefulWidget {
   final Map<String, dynamic> item;
   final Color themeColor;
 
-  const FeedItemCard({Key? key, required this.item, required this.themeColor})
-    : super(key: key);
+  const FeedItemCard({super.key, required this.item, required this.themeColor});
 
   @override
   State<FeedItemCard> createState() => _FeedItemCardState();

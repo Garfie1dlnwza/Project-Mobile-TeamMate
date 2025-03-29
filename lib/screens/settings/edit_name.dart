@@ -4,7 +4,7 @@ import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
 
 class EditNamePage extends StatefulWidget {
-  const EditNamePage({Key? key}) : super(key: key);
+  const EditNamePage({super.key});
 
   @override
   State<EditNamePage> createState() => _EditNamePageState();
@@ -458,7 +458,7 @@ class _EditNamePageState extends State<EditNamePage> {
                                     },
                                   ),
                                   SizedBox(height: 35),
-                                  Container(
+                                  SizedBox(
                                     width: double.infinity,
                                     height: 55,
                                     child: ElevatedButton(

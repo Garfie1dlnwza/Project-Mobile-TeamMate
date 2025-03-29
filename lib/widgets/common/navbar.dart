@@ -6,7 +6,7 @@ import 'package:teammate/screens/settings_page.dart';
 
 
 class Navbar extends StatefulWidget {
-  const Navbar({Key? key}) : super(key: key);
+  const Navbar({super.key});
 
   @override
   State<Navbar> createState() => _NavbarState();

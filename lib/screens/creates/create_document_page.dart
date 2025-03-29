@@ -9,10 +9,10 @@ class CreateDocumentPage extends StatefulWidget {
   final String departmentId;
 
   const CreateDocumentPage({
-    Key? key,
+    super.key,
     required this.projectId,
     required this.departmentId,
-  }) : super(key: key);
+  });
 
   @override
   _CreateDocumentPageState createState() => _CreateDocumentPageState();

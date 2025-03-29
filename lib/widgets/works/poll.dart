@@ -4,8 +4,7 @@ class PollContent extends StatefulWidget {
   final Map<String, dynamic> data;
   final Color themeColor;
 
-  const PollContent({Key? key, required this.data, required this.themeColor})
-    : super(key: key);
+  const PollContent({super.key, required this.data, required this.themeColor});
 
   @override
   State<PollContent> createState() => _PollContentState();
@@ -72,7 +71,7 @@ class _PollContentState extends State<PollContent>
                   ),
                 ),
                 Text(
-                  '${totalVotes} votes so far',
+                  '$totalVotes votes so far',
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],

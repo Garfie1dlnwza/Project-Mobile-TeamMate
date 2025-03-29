@@ -12,7 +12,7 @@ import 'package:camera/camera.dart';
 class ProfileEditCard extends StatefulWidget {
   final Function? onImageUpdated;
 
-  const ProfileEditCard({Key? key, this.onImageUpdated}) : super(key: key);
+  const ProfileEditCard({super.key, this.onImageUpdated});
 
   @override
   State<ProfileEditCard> createState() => _ProfileEditCardState();

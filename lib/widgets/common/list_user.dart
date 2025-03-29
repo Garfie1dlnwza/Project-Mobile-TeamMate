@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/services/firestore_department_service.dart';
-import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/profile.dart';
 
 class UserListItem extends StatelessWidget {

@@ -7,7 +7,7 @@ import 'package:teammate/widgets/common/header_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   final String title;
-  SettingsPage({Key? key, required this.title}) : super(key: key);
+  const SettingsPage({super.key, required this.title});
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }

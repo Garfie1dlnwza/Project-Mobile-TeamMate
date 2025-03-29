@@ -9,7 +9,7 @@ class ProjectCard extends StatelessWidget {
   final FirestoreUserService userService;
 
 
-  ProjectCard({
+  const ProjectCard({
     super.key,
     required this.data,
     required this.projectColor,
