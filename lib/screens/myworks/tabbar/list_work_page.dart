@@ -101,8 +101,8 @@ class _ListWorkPageState extends State<ListWorkPage> {
                 ),
                 ListTile(
                   minVerticalPadding: 16,
-                  leading: const Icon(Icons.post_add),
-                  title: const Text('Post'),
+                  leading: const Icon(Icons.document_scanner),
+                  title: const Text('Document'),
                   onTap: () {
                     Navigator.of(context).pop();
                     Navigator.push(
