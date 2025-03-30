@@ -194,7 +194,16 @@ class _FeedItemCardState extends State<FeedItemCard>
       case 'post':
         return PostContent(data: data, themeColor: Colors.grey[800]!);
       case 'poll':
-        return PollContent(data: data, themeColor: Colors.grey[800]!);
+        print('✅ Poll Data : $data');
+        if (data.containsKey('pollId') && data['pollId'] != null) {
+          return PollContent(
+            data: data,
+            themeColor: Colors.grey[800]!,
+            pollId: data['pollId'],
+          );
+        } else {
+          return const Text('Poll data is incomplete');
+        }
       default:
         return const Text('Unknown content type');
     }

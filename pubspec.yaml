@@ -59,6 +59,7 @@ dependencies:
   url_launcher: ^6.1.14
   extension_google_sign_in_as_googleapis_auth: ^2.0.9
   firebase_dynamic_links: ^6.1.4
+  firebase_storage: ^12.4.4
   
 
 dev_dependencies:
