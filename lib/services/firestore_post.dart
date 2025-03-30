@@ -12,20 +12,37 @@ class FirestorePostService {
     required String departmentId,
     String? imageUrl,
     String? fileUrl,
+    List<Map<String, dynamic>>? attachments,
   }) async {
     try {
-      await _firestore.collection('posts').add({
+      // Prepare post data
+      Map<String, dynamic> postData = {
         'creator': creatorId,
         'title': title,
         'description': description,
-        'image': imageUrl ?? '',
-        'file': fileUrl ?? '',
         'departmentId': departmentId,
         'createdAt': FieldValue.serverTimestamp(),
         'okReactions': [],
         'okCount': 0,
         'commentCount': 0,
-      });
+      };
+
+      // Add legacy fields for backward compatibility if available
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        postData['image'] = imageUrl;
+      }
+
+      if (fileUrl != null && fileUrl.isNotEmpty) {
+        postData['file'] = fileUrl;
+      }
+
+      // Add attachments array if available
+      if (attachments != null && attachments.isNotEmpty) {
+        postData['attachments'] = attachments;
+      }
+
+      // Create the post in Firestore
+      await _firestore.collection('posts').add(postData);
     } catch (e) {
       throw Exception('Failed to create post: $e');
     }

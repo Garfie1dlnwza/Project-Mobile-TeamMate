@@ -8,6 +8,7 @@ import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/utils/date.dart';
 import 'package:teammate/widgets/common/button/button_ok_reaction.dart';
 import 'package:teammate/widgets/common/comment.dart';
+import 'package:teammate/services/file_attachment_service.dart';
 
 class TaskContent extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -22,6 +23,78 @@ class TaskContent extends StatefulWidget {
 class _TaskContentState extends State<TaskContent> {
   bool _showComments = false;
   final FirestoreUserService _userService = FirestoreUserService();
+  List<FileAttachment> _attachments = [];
+  bool _loadingAttachments = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAttachments();
+  }
+
+  Future<void> _loadAttachments() async {
+    if (widget.data['attachments'] == null ||
+        (widget.data['attachments'] is List &&
+            (widget.data['attachments'] as List).isEmpty)) {
+      return;
+    }
+
+    setState(() {
+      _loadingAttachments = true;
+    });
+
+    try {
+      List<dynamic> attachmentsData = widget.data['attachments'] as List;
+      List<FileAttachment> loadedAttachments = [];
+
+      for (var item in attachmentsData) {
+        if (item is String) {
+          // Legacy format: URL only
+          final String url = item;
+          final String fileName = url.split('/').last.split('?').first;
+          final String fileType = fileName.split('.').last.toUpperCase();
+          final bool isImage = [
+            'JPG',
+            'JPEG',
+            'PNG',
+            'GIF',
+            'WEBP',
+            'BMP',
+          ].contains(fileType);
+
+          loadedAttachments.add(
+            FileAttachment(
+              fileName: fileName,
+              fileType: fileType,
+              downloadUrl: url,
+              isImage: isImage,
+            ),
+          );
+        } else if (item is Map<String, dynamic>) {
+          // New format: Map with details
+          loadedAttachments.add(
+            FileAttachment(
+              fileName: item['fileName'],
+              fileSize: item['fileSize'],
+              fileType: item['fileType'],
+              downloadUrl: item['downloadUrl'],
+              isImage: item['isImage'] ?? false,
+            ),
+          );
+        }
+      }
+
+      setState(() {
+        _attachments = loadedAttachments;
+      });
+    } catch (e) {
+      debugPrint('Error loading attachments: $e');
+    } finally {
+      setState(() {
+        _loadingAttachments = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -182,6 +255,100 @@ class _TaskContentState extends State<TaskContent> {
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                ),
+              ],
+
+              // Display attachments if available
+              if (_attachments.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.attach_file, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_attachments.length} ${_attachments.length == 1 ? 'attachment' : 'attachments'}',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Show thumbnail for the first attachment if it's an image
+                if (_attachments.any((attachment) => attachment.isImage)) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      height: 120,
+                      width: double.infinity,
+                      color: Colors.grey[200],
+                      child:
+                          _attachments.any((attachment) => attachment.isImage)
+                              ? Image.network(
+                                _attachments
+                                    .firstWhere((a) => a.isImage)
+                                    .downloadUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.grey[400],
+                                    ),
+                                  );
+                                },
+                              )
+                              : Center(
+                                child: Icon(
+                                  Icons.attach_file,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                    ),
+                  ),
+                ] else if (_attachments.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.insert_drive_file,
+                        size: 16,
+                        color: widget.themeColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _attachments.first.fileName ?? 'File',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: widget.themeColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (_attachments.length > 1) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '+ ${_attachments.length - 1} more',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ] else if (_loadingAttachments) ...[
+                const SizedBox(height: 16),
+                Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.themeColor,
+                      ),
+                    ),
+                  ),
                 ),
               ],
 

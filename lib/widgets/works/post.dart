@@ -2,8 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+import 'package:teammate/services/file_attachment_service.dart';
 import 'package:teammate/widgets/common/button/button_ok_reaction.dart';
 import 'package:teammate/widgets/common/comment.dart';
+import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
+
 
 class PostContent extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -19,13 +22,123 @@ class _PostContentState extends State<PostContent> {
   bool _isExpanded = false;
   bool _showComments = false;
   final FirestoreUserService _userService = FirestoreUserService();
+  List<FileAttachment> _attachments = [];
+  bool _loadingAttachments = false;
   static const int _maxLines = 3;
 
-  // ฟังก์ชันสำหรับการแสดง/ซ่อนคอมเมนต์
+  @override
+  void initState() {
+    super.initState();
+    _loadAttachments();
+  }
+
+  Future<void> _loadAttachments() async {
+    // Check for image attachments first
+    if (widget.data['image'] != null &&
+        widget.data['image'].toString().isNotEmpty) {
+      setState(() {
+        _attachments.add(
+          FileAttachment(
+            fileName: 'Image',
+            fileType: 'IMAGE',
+            downloadUrl: widget.data['image'],
+            isImage: true,
+          ),
+        );
+      });
+    }
+
+    // Check for file attachments
+    if (widget.data['file'] != null &&
+        widget.data['file'].toString().isNotEmpty) {
+      final String url = widget.data['file'];
+      final String fileName = url.split('/').last.split('?').first;
+      final String fileType = fileName.split('.').last.toUpperCase();
+      final bool isImage = [
+        'JPG',
+        'JPEG',
+        'PNG',
+        'GIF',
+        'WEBP',
+        'BMP',
+      ].contains(fileType);
+
+      setState(() {
+        _attachments.add(
+          FileAttachment(
+            fileName: fileName,
+            fileType: fileType,
+            downloadUrl: url,
+            isImage: isImage,
+          ),
+        );
+      });
+    }
+
+    // Check for new format attachments array
+    if (widget.data['attachments'] != null &&
+        widget.data['attachments'] is List &&
+        (widget.data['attachments'] as List).isNotEmpty) {
+      setState(() {
+        _loadingAttachments = true;
+      });
+
+      try {
+        List<dynamic> attachmentsData = widget.data['attachments'] as List;
+
+        for (var item in attachmentsData) {
+          if (item is String) {
+            // Legacy format: URL only
+            final String url = item;
+            final String fileName = url.split('/').last.split('?').first;
+            final String fileType = fileName.split('.').last.toUpperCase();
+            final bool isImage = [
+              'JPG',
+              'JPEG',
+              'PNG',
+              'GIF',
+              'WEBP',
+              'BMP',
+            ].contains(fileType);
+
+            _attachments.add(
+              FileAttachment(
+                fileName: fileName,
+                fileType: fileType,
+                downloadUrl: url,
+                isImage: isImage,
+              ),
+            );
+          } else if (item is Map<String, dynamic>) {
+            // New format: Map with details
+            _attachments.add(
+              FileAttachment(
+                fileName: item['fileName'],
+                fileSize: item['fileSize'],
+                fileType: item['fileType'],
+                downloadUrl: item['downloadUrl'],
+                isImage: item['isImage'] ?? false,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading attachments: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _loadingAttachments = false;
+          });
+        }
+      }
+    }
+  }
+
+  // Toggle comments function
   void _toggleComments() {
     setState(() {
       _showComments = !_showComments;
-      // เมื่อแสดงคอมเมนต์ ตรวจสอบว่าควรขยายข้อความหรือไม่
+      // When showing comments, consider expanding the text if not already expanded
       if (_showComments && !_isExpanded) {
         _isExpanded = true;
       }
@@ -60,11 +173,11 @@ class _PostContentState extends State<PostContent> {
     textPainter.layout(maxWidth: MediaQuery.of(context).size.width - 40);
     final bool hasTextOverflow = textPainter.didExceedMaxLines;
 
-    // ล้อมเนื้อหาทั้งหมดด้วย Material และ InkWell เพื่อให้มี effect เมื่อแตะ
+    // Wrap content with Material and InkWell for tap effect
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _toggleComments, // เรียกใช้ฟังก์ชันเมื่อแตะที่โพสต์
+        onTap: _toggleComments, // Call toggle function when post is tapped
         splashColor: widget.themeColor.withOpacity(0.05),
         highlightColor: widget.themeColor.withOpacity(0.02),
         child: Column(
@@ -165,12 +278,12 @@ class _PostContentState extends State<PostContent> {
                   ),
                   if (hasTextOverflow) ...[
                     const SizedBox(height: 8),
-                    // ใช้ Material + InkWell เพื่อกันการแตะจาก parent
+                    // Use Material + InkWell to prevent parent tap from triggering
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          // เปลี่ยนสถานะการขยายข้อความ
+                          // Toggle text expansion state
                           setState(() {
                             _isExpanded = !_isExpanded;
                           });
@@ -201,6 +314,34 @@ class _PostContentState extends State<PostContent> {
                 ],
               ),
               const SizedBox(height: 20),
+            ],
+
+            // Display attachments if available
+            if (_attachments.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ..._attachments.map(
+                (attachment) => FileAttachmentWidget(
+                  attachment: attachment,
+                  themeColor: widget.themeColor,
+                  showRemoveOption: false,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ] else if (_loadingAttachments) ...[
+              const SizedBox(height: 16),
+              Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      widget.themeColor,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
             ],
 
             // Interaction bar with OK button and comment toggle
@@ -267,7 +408,7 @@ class _PostContentState extends State<PostContent> {
               const SizedBox(height: 8),
               Divider(color: Colors.grey[200]),
               const SizedBox(height: 8),
-              // ห่อ CommentWidget ด้วย Material เพื่อให้การแตะที่นี่ไม่ส่งผลต่อ parent
+              // Wrap CommentWidget with Material to prevent taps from affecting parent
               Material(
                 color: Colors.transparent,
                 child: CommentWidget(

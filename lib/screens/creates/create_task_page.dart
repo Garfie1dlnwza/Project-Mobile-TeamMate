@@ -4,6 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
 import 'package:teammate/theme/app_colors.dart';
+import 'package:teammate/services/file_attachment_service.dart';
+
+import 'package:teammate/widgets/common/file/attachment_picker_widget.dart';
+import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
+import 'package:teammate/widgets/common/file/uploading_attachment_widget.dart';
 
 class CreateTaskPage extends StatefulWidget {
   final String departmentId;
@@ -31,7 +36,9 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   bool _isCreating = false;
 
   // Attachment handling
-  final List<String> _attachments = [];
+  List<FileAttachment> _attachments = [];
+  List<FileAttachment> _uploadingAttachments = [];
+  Map<String, double> _uploadProgress = {};
 
   void _selectDueDateTime() async {
     // Date selection
@@ -83,9 +90,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
     }
   }
 
-  void _addAttachment() {
-    // Placeholder for attachment logic
-    // In a real implementation, you'd use file picker
+  void _showAttachmentPicker() {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.background,
@@ -93,69 +98,22 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder:
-          (context) => Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Add Attachment',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _buildAttachmentOption(
-                  icon: Icons.insert_drive_file,
-                  title: 'Document',
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _attachments.add('Document ${_attachments.length + 1}');
-                    });
-                  },
-                ),
-                _buildAttachmentOption(
-                  icon: Icons.image,
-                  title: 'Photo/Image',
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _attachments.add('Image ${_attachments.length + 1}');
-                    });
-                  },
-                ),
-                _buildAttachmentOption(
-                  icon: Icons.link,
-                  title: 'Link',
-                  onTap: () {
-                    Navigator.pop(context);
-                    setState(() {
-                      _attachments.add('Link ${_attachments.length + 1}');
-                    });
-                  },
-                ),
-              ],
-            ),
+          (context) => AttachmentPickerWidget(
+            onAttachmentSelected: (attachment) {
+              setState(() {
+                _attachments.add(attachment);
+              });
+              Navigator.pop(context);
+            },
+            themeColor: AppColors.primary,
           ),
     );
   }
 
-  Widget _buildAttachmentOption({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: AppColors.secondary.withOpacity(0.1),
-        child: Icon(icon, color: AppColors.secondary),
-      ),
-      title: Text(title),
-      onTap: onTap,
-    );
+  void _removeAttachment(int index) {
+    setState(() {
+      _attachments.removeAt(index);
+    });
   }
 
   Future<void> _createTask() async {
@@ -188,6 +146,44 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         DocumentReference taskRef = firestore.collection('tasks').doc();
         final taskId = taskRef.id; // Get the generated task ID
 
+        // Upload attachments if any
+        List<Map<String, dynamic>> uploadedAttachments = [];
+        final fileAttachmentService = FileAttachmentService();
+
+        for (int i = 0; i < _attachments.length; i++) {
+          final attachment = _attachments[i];
+
+          setState(() {
+            _uploadingAttachments.add(attachment);
+            _uploadProgress[attachment.fileName ?? ''] = 0.0;
+          });
+
+          final uploadedAttachment = await fileAttachmentService.uploadFile(
+            attachment: attachment,
+            storagePath: 'tasks/$taskId/attachments',
+            onProgress: (progress) {
+              setState(() {
+                _uploadProgress[attachment.fileName ?? ''] = progress;
+              });
+            },
+          );
+
+          if (uploadedAttachment != null &&
+              uploadedAttachment.downloadUrl != null) {
+            uploadedAttachments.add({
+              'fileName': uploadedAttachment.fileName,
+              'fileSize': uploadedAttachment.fileSize,
+              'fileType': uploadedAttachment.fileType,
+              'downloadUrl': uploadedAttachment.downloadUrl,
+              'isImage': uploadedAttachment.isImage,
+            });
+          }
+
+          setState(() {
+            _uploadingAttachments.remove(attachment);
+          });
+        }
+
         // Prepare task data
         Map<String, dynamic> taskData = {
           'taskId': taskId,
@@ -198,7 +194,7 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
           'creatorId': currentUser.uid,
           'isSubmit': false,
           'isApproved': false,
-          'attachments': _attachments,
+          'attachments': uploadedAttachments,
           'createdAt': FieldValue.serverTimestamp(),
           'departmentId': widget.departmentId, // Add department ID
         };
@@ -456,95 +452,125 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
 
                   const SizedBox(height: 24),
 
-                  // Attachments with improved styling
-                  Text(
-                    'Attachments',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Add attachment button with gradient outline
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient:
-                          _attachments.isEmpty
-                              ? const LinearGradient(
-                                colors: [
-                                  AppColors.primaryGradientStart,
-                                  AppColors.primaryGradientEnd,
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              )
-                              : null,
-                      border:
-                          _attachments.isNotEmpty
-                              ? Border.all(color: AppColors.inputBorder)
-                              : null,
-                    ),
-                    padding:
-                        _attachments.isEmpty
-                            ? const EdgeInsets.all(1.5)
-                            : null, // Border thickness
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(
-                          _attachments.isEmpty ? 11 : 12,
+                  // Attachments section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Attachments',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primary,
                         ),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _addAttachment,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.secondary.withOpacity(0.1),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.attach_file,
-                                    color: AppColors.secondary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Add Attachment',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: AppColors.linkText,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      TextButton.icon(
+                        onPressed: _showAttachmentPicker,
+                        icon: Icon(
+                          Icons.attach_file,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(
+                          'Add File',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
 
-                  // Display attachments with better styling
-                  if (_attachments.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    ..._attachments.map(
-                      (attachment) => _buildAttachmentItem(attachment),
+                  // Display selected attachments
+                  if (_attachments.isEmpty)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.attach_file_outlined,
+                            size: 32,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No attachments added yet',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _showAttachmentPicker,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add Attachment'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
+                              ),
+                              foregroundColor: AppColors.primary,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Column(
+                      children: [
+                        ...List.generate(_attachments.length, (index) {
+                          final attachment = _attachments[index];
+
+                          if (_uploadingAttachments.contains(attachment)) {
+                            return UploadingAttachmentWidget(
+                              attachment: attachment,
+                              progress:
+                                  _uploadProgress[attachment.fileName ?? ''] ??
+                                  0.0,
+                              themeColor: AppColors.primary,
+                            );
+                          } else {
+                            return FileAttachmentWidget(
+                              attachment: attachment,
+                              themeColor: AppColors.primary,
+                              onRemove: () => _removeAttachment(index),
+                            );
+                          }
+                        }),
+
+                        // Add another button
+                        if (_attachments.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: _showAttachmentPicker,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add Another File'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  ],
 
                   const SizedBox(height: 40),
 
@@ -606,57 +632,6 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAttachmentItem(String attachment) {
-    IconData iconData;
-
-    if (attachment.startsWith('Document')) {
-      iconData = Icons.insert_drive_file;
-    } else if (attachment.startsWith('Image')) {
-      iconData = Icons.image;
-    } else {
-      iconData = Icons.link;
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.secondary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(iconData, color: AppColors.secondary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              attachment,
-              style: TextStyle(fontSize: 14, color: AppColors.labelText),
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.close, color: AppColors.secondary, size: 20),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () {
-              setState(() {
-                _attachments.remove(attachment);
-              });
-            },
-          ),
-        ],
       ),
     );
   }

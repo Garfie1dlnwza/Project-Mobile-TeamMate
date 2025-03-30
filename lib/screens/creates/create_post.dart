@@ -1,9 +1,15 @@
 import 'dart:math';
-
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:teammate/services/firestore_post.dart';
 import 'package:teammate/theme/app_colors.dart';
+import 'package:teammate/services/file_attachment_service.dart';
+import 'package:teammate/widgets/common/file/attachment_picker_widget.dart';
+import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
+import 'package:teammate/widgets/common/file/uploading_attachment_widget.dart';
 
 class CreatePost extends StatefulWidget {
   final String departmentId;
@@ -18,7 +24,13 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
   final TextEditingController _postController = TextEditingController();
   final FirestorePostService _postService = FirestorePostService();
   final User? user = FirebaseAuth.instance.currentUser;
+
   bool _isSubmitting = false;
+
+  // For file attachments
+  List<FileAttachment> _attachments = [];
+  List<FileAttachment> _uploadingAttachments = [];
+  Map<String, double> _uploadProgress = {};
 
   // Animation controllers
   late AnimationController _animationController;
@@ -73,13 +85,28 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  void _handleAddAttachment(FileAttachment attachment) {
+    setState(() {
+      _attachments.add(attachment);
+    });
+  }
+
+  void _removeAttachment(FileAttachment attachment) {
+    setState(() {
+      _attachments.remove(attachment);
+    });
+  }
+
+  // Handle post submission
   Future<void> _handlePostSubmission() async {
     final title = _titleController.text.trim();
     final postText = _postController.text.trim();
 
     if (title.isEmpty || postText.isEmpty) {
       _showErrorSnackBar(
-        title.isEmpty ? 'Please enter a title' : 'Please enter post content',
+        title.isEmpty
+            ? 'Please enter a post title'
+            : 'Please enter post content',
       );
       // Add shake animation for error
       _animateError();
@@ -89,11 +116,62 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
     setState(() => _isSubmitting = true);
 
     try {
+      // Upload attachments
+      List<Map<String, dynamic>> uploadedAttachments = [];
+      String? imageUrl;
+      String? fileUrl;
+
+      final fileAttachmentService = FileAttachmentService();
+
+      for (var attachment in _attachments) {
+        setState(() {
+          _uploadingAttachments.add(attachment);
+          _uploadProgress[attachment.fileName ?? ''] = 0.0;
+        });
+
+        final uploadedAttachment = await fileAttachmentService.uploadFile(
+          attachment: attachment,
+          storagePath: 'posts/${user?.uid}',
+          onProgress: (progress) {
+            setState(() {
+              _uploadProgress[attachment.fileName ?? ''] = progress;
+            });
+          },
+        );
+
+        if (uploadedAttachment != null &&
+            uploadedAttachment.downloadUrl != null) {
+          // For backward compatibility, set the first image to imageUrl and first file to fileUrl
+          if (uploadedAttachment.isImage && imageUrl == null) {
+            imageUrl = uploadedAttachment.downloadUrl;
+          } else if (!uploadedAttachment.isImage && fileUrl == null) {
+            fileUrl = uploadedAttachment.downloadUrl;
+          }
+
+          // Add to attachments array
+          uploadedAttachments.add({
+            'fileName': uploadedAttachment.fileName,
+            'fileSize': uploadedAttachment.fileSize,
+            'fileType': uploadedAttachment.fileType,
+            'downloadUrl': uploadedAttachment.downloadUrl,
+            'isImage': uploadedAttachment.isImage,
+          });
+        }
+
+        setState(() {
+          _uploadingAttachments.remove(attachment);
+        });
+      }
+
+      // Create post with attachments
       await _postService.createPost(
         creatorId: user!.uid,
         title: title,
         description: postText,
         departmentId: widget.departmentId,
+        imageUrl: imageUrl,
+        fileUrl: fileUrl,
+        attachments: uploadedAttachments,
       );
 
       _titleController.clear();
@@ -114,7 +192,7 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Failed to create post: $e');
+        _showErrorSnackBar('Could not create post: $e');
         _animateError();
       }
     } finally {
@@ -185,7 +263,7 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
         backgroundColor: Colors.transparent,
         centerTitle: true,
         title: const Text(
-          'CREATE POST',
+          'Create Post',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -193,123 +271,141 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Title Input Field with animation
-              FadeTransition(
-                opacity: _formAnimation,
-                child: _buildTextField(
-                  controller: _titleController,
-                  hint: 'Title',
-                  maxLines: 1,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Description Input Field with animation
-              FadeTransition(
-                opacity: _formAnimation,
-                child: _buildTextField(
-                  controller: _postController,
-                  hint: 'Share your thoughts...',
-                  maxLines: 6,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Attachment Icons Container with slide animation
-              SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 16,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Title Input Field with animation
+                  FadeTransition(
+                    opacity: _formAnimation,
+                    child: _buildTextField(
+                      controller: _titleController,
+                      hint: 'Title',
+                      maxLines: 1,
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildAttachmentOption(
-                        icon: Icons.photo_library_outlined,
-                        label: 'Photo',
-                        color: Colors.green.shade600,
-                        onTap: () => print('Pick image'),
-                      ),
-                      _buildAttachmentOption(
-                        icon: Icons.mic_outlined,
-                        label: 'Voice',
-                        color: Colors.blue.shade600,
-                        onTap: () => print('Start recording'),
-                      ),
-                      _buildAttachmentOption(
-                        icon: Icons.attach_file_outlined,
-                        label: 'File',
-                        color: Colors.orange.shade600,
-                        onTap: () => print('Pick file'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 16),
 
-              // Post Button with scale animation
-              ScaleTransition(
-                scale: _buttonAnimation,
-                child: SizedBox(
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _handlePostSubmission,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                  // Description Input Field with animation
+                  FadeTransition(
+                    opacity: _formAnimation,
+                    child: _buildTextField(
+                      controller: _postController,
+                      hint: 'Share your thoughts...',
+                      maxLines: 6,
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Display selected attachments
+                  if (_attachments.isNotEmpty) ...[
+                    Text(
+                      'Attachments',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
                       ),
                     ),
-                    child:
-                        _isSubmitting
-                            ? SizedBox(
-                              height: 24,
-                              width: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                            : const Text(
-                              'POST',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.8,
-                              ),
-                            ),
+                    const SizedBox(height: 8),
+
+                    ...List.generate(_attachments.length, (index) {
+                      final attachment = _attachments[index];
+
+                      if (_uploadingAttachments.contains(attachment)) {
+                        return UploadingAttachmentWidget(
+                          attachment: attachment,
+                          progress:
+                              _uploadProgress[attachment.fileName ?? ''] ?? 0.0,
+                          themeColor: AppColors.primary,
+                          onCancel: () => _removeAttachment(attachment),
+                        );
+                      } else {
+                        return FileAttachmentWidget(
+                          attachment: attachment,
+                          themeColor: AppColors.primary,
+                          onRemove: () => _removeAttachment(attachment),
+                        );
+                      }
+                    }),
+
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Attachment picker with slide animation
+                  SlideTransition(
+                    position: _slideAnimation,
+                    child: AttachmentPickerWidget(
+                      onAttachmentSelected: _handleAddAttachment,
+                      themeColor: AppColors.primary,
+                    ),
                   ),
-                ),
+
+                  const SizedBox(height: 32),
+
+                  // Post Button with scale animation
+                  ScaleTransition(
+                    scale: _buttonAnimation,
+                    child: SizedBox(
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _handlePostSubmission,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        child:
+                            _isSubmitting
+                                ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      'Posting...',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                : const Text(
+                                  'Post',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -341,39 +437,6 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
           contentPadding: const EdgeInsets.symmetric(
             vertical: 16.0,
             horizontal: 16.0,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAttachmentOption({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0.8, end: 1.0),
-      duration: const Duration(milliseconds: 300),
-      builder: (context, scale, child) {
-        return Transform.scale(scale: scale, child: child);
-      },
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 24),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-              ),
-            ],
           ),
         ),
       ),

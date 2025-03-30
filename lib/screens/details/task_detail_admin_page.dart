@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/utils/date.dart';
+import 'package:teammate/services/file_attachment_service.dart';
+import 'package:teammate/widgets/common/file/attachment_picker_widget.dart';
+import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
+import 'package:teammate/widgets/common/file/uploading_attachment_widget.dart';
 
 class TaskDetailsAdminPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -25,11 +29,93 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
   String? submittingUserName;
   String? submittingUserEmail;
 
+  // For file attachments
+  List<FileAttachment> _attachments = [];
+  bool _loadingAttachments = false;
+
+  // For new attachment uploads
+  List<FileAttachment> _pendingAttachments = [];
+  List<FileAttachment> _uploadingAttachments = [];
+  Map<String, double> _uploadProgress = {};
+  bool _canAddAttachments = false;
+
   @override
   void initState() {
     super.initState();
+    _loadAttachments();
+
     if (widget.isAdminOrHead && widget.data['isSubmit'] == true) {
       _loadSubmissionData();
+    }
+
+    // Define if user can add attachments (based on task status and user role)
+    _canAddAttachments =
+        widget.isAdminOrHead ||
+        !(widget.data['isSubmit'] ?? false) ||
+        (widget.data['isRejected'] ?? false);
+  }
+
+  Future<void> _loadAttachments() async {
+    if (widget.data['attachments'] == null ||
+        (widget.data['attachments'] is List &&
+            (widget.data['attachments'] as List).isEmpty)) {
+      return;
+    }
+
+    setState(() {
+      _loadingAttachments = true;
+    });
+
+    try {
+      List<dynamic> attachmentsData = widget.data['attachments'] as List;
+      List<FileAttachment> loadedAttachments = [];
+
+      for (var item in attachmentsData) {
+        if (item is String) {
+          // Legacy format: URL only
+          final String url = item;
+          final String fileName = url.split('/').last.split('?').first;
+          final String fileType = fileName.split('.').last.toUpperCase();
+          final bool isImage = [
+            'JPG',
+            'JPEG',
+            'PNG',
+            'GIF',
+            'WEBP',
+            'BMP',
+          ].contains(fileType);
+
+          loadedAttachments.add(
+            FileAttachment(
+              fileName: fileName,
+              fileType: fileType,
+              downloadUrl: url,
+              isImage: isImage,
+            ),
+          );
+        } else if (item is Map<String, dynamic>) {
+          // New format: Map with details
+          loadedAttachments.add(
+            FileAttachment(
+              fileName: item['fileName'],
+              fileSize: item['fileSize'],
+              fileType: item['fileType'],
+              downloadUrl: item['downloadUrl'],
+              isImage: item['isImage'] ?? false,
+            ),
+          );
+        }
+      }
+
+      setState(() {
+        _attachments = loadedAttachments;
+      });
+    } catch (e) {
+      print('Error loading attachments: $e');
+    } finally {
+      setState(() {
+        _loadingAttachments = false;
+      });
     }
   }
 
@@ -101,6 +187,56 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
       final taskId = widget.data['taskId'];
       print("✅ Task ID: $taskId");
 
+      // Upload pending attachments first
+      List<Map<String, dynamic>> uploadedAttachments = [];
+
+      // First add existing attachments
+      for (var attachment in _attachments) {
+        if (attachment.downloadUrl != null) {
+          uploadedAttachments.add({
+            'fileName': attachment.fileName,
+            'fileSize': attachment.fileSize,
+            'fileType': attachment.fileType,
+            'downloadUrl': attachment.downloadUrl,
+            'isImage': attachment.isImage,
+          });
+        }
+      }
+
+      // Then upload and add new attachments
+      for (var attachment in _pendingAttachments) {
+        setState(() {
+          _uploadingAttachments.add(attachment);
+          _uploadProgress[attachment.fileName ?? ''] = 0.0;
+        });
+
+        final fileAttachmentService = FileAttachmentService();
+        final uploadedAttachment = await fileAttachmentService.uploadFile(
+          attachment: attachment,
+          storagePath: 'tasks/$taskId/attachments',
+          onProgress: (progress) {
+            setState(() {
+              _uploadProgress[attachment.fileName ?? ''] = progress;
+            });
+          },
+        );
+
+        if (uploadedAttachment != null &&
+            uploadedAttachment.downloadUrl != null) {
+          uploadedAttachments.add({
+            'fileName': uploadedAttachment.fileName,
+            'fileSize': uploadedAttachment.fileSize,
+            'fileType': uploadedAttachment.fileType,
+            'downloadUrl': uploadedAttachment.downloadUrl,
+            'isImage': uploadedAttachment.isImage,
+          });
+        }
+
+        setState(() {
+          _uploadingAttachments.remove(attachment);
+        });
+      }
+
       // Check if user already submitted and task wasn't rejected
       final existingSubmissions =
           await FirebaseFirestore.instance
@@ -115,7 +251,7 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
           !(widget.data['isRejected'] ?? false)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('This task already submitted.'),
+            content: Text('This task has already been submitted.'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -140,6 +276,11 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
         'submittedBy': currentUser.uid,
         'submittedAt': Timestamp.now(),
         'isApproved': false,
+        'attachments': uploadedAttachments,
+      });
+
+      setState(() {
+        _pendingAttachments = [];
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -218,6 +359,18 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
         isLoading = false;
       });
     }
+  }
+
+  void _handleAddAttachment(FileAttachment attachment) {
+    setState(() {
+      _pendingAttachments.add(attachment);
+    });
+  }
+
+  void _removePendingAttachment(FileAttachment attachment) {
+    setState(() {
+      _pendingAttachments.remove(attachment);
+    });
   }
 
   @override
@@ -367,6 +520,155 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
                         ),
                       ),
                     ),
+
+                    // Attachments section
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Attachments',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (_canAddAttachments)
+                          TextButton.icon(
+                            onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+                                builder:
+                                    (context) => AttachmentPickerWidget(
+                                      onAttachmentSelected:
+                                          _handleAddAttachment,
+                                      themeColor: widget.themeColor,
+                                    ),
+                              );
+                            },
+                            icon: Icon(
+                              Icons.attach_file,
+                              size: 18,
+                              color: widget.themeColor,
+                            ),
+                            label: Text(
+                              'Add',
+                              style: TextStyle(
+                                color: widget.themeColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Show loading indicator while loading attachments
+                    if (_loadingAttachments)
+                      Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            widget.themeColor,
+                          ),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    // Show message if no attachments
+                    else if (_attachments.isEmpty &&
+                        _pendingAttachments.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.attach_file_outlined,
+                              size: 36,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No attachments for this task',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (_canAddAttachments) ...[
+                              const SizedBox(height: 16),
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    builder:
+                                        (context) => AttachmentPickerWidget(
+                                          onAttachmentSelected:
+                                              _handleAddAttachment,
+                                          themeColor: widget.themeColor,
+                                        ),
+                                  );
+                                },
+                                icon: Icon(
+                                  Icons.add,
+                                  size: 16,
+                                  color: widget.themeColor,
+                                ),
+                                label: const Text('Add Attachment'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: widget.themeColor,
+                                  side: BorderSide(color: widget.themeColor),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                    // Show attachments
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Existing attachments
+                          ..._attachments.map(
+                            (attachment) => FileAttachmentWidget(
+                              attachment: attachment,
+                              themeColor: widget.themeColor,
+                              showRemoveOption: false,
+                            ),
+                          ),
+
+                          // Pending attachments
+                          ..._pendingAttachments.map(
+                            (attachment) =>
+                                _uploadingAttachments.contains(attachment)
+                                    ? UploadingAttachmentWidget(
+                                      attachment: attachment,
+                                      progress:
+                                          _uploadProgress[attachment.fileName ??
+                                              ''] ??
+                                          0.0,
+                                      themeColor: widget.themeColor,
+                                    )
+                                    : FileAttachmentWidget(
+                                      attachment: attachment,
+                                      themeColor: widget.themeColor,
+                                      onRemove:
+                                          () => _removePendingAttachment(
+                                            attachment,
+                                          ),
+                                    ),
+                          ),
+                        ],
+                      ),
 
                     // Submission info for admin/head
                     if (widget.isAdminOrHead && isSubmitted) ...[
