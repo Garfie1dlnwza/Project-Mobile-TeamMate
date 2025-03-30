@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:teammate/widgets/common/profile.dart';
 import 'package:teammate/screens/noti_page.dart';
-
 import 'package:teammate/widgets/notification_badge.dart';
 
 class Headbar extends StatefulWidget implements PreferredSizeWidget {
@@ -17,6 +16,7 @@ class Headbar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _HeadbarState extends State<Headbar> {
+  final User? _currentUser = FirebaseAuth.instance.currentUser;
   final String? _userName = FirebaseAuth.instance.currentUser?.displayName;
 
   String _getGreeting() {
@@ -30,6 +30,21 @@ class _HeadbarState extends State<Headbar> {
       context,
       MaterialPageRoute(builder: (context) => const NotiPage()),
     );
+  }
+
+  // Method to get user avatar widget
+  Widget _getUserAvatar() {
+    // Check if user has a profile image
+    if (_currentUser?.photoURL != null && _currentUser!.photoURL!.isNotEmpty) {
+      // Return network image as CircleAvatar
+      return CircleAvatar(
+        backgroundImage: NetworkImage(_currentUser!.photoURL!),
+        radius: 15,
+      );
+    } else {
+      // Fallback to ProfileAvatar if no photo URL
+      return ProfileAvatar(name: _userName ?? 'Unknown');
+    }
   }
 
   @override
@@ -56,7 +71,7 @@ class _HeadbarState extends State<Headbar> {
         ),
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: ProfileAvatar(name: _userName ?? 'Unknown'),
+          child: _getUserAvatar(),
         ),
         actions: [
           Padding(
@@ -85,7 +100,7 @@ class _HeadbarState extends State<Headbar> {
         ),
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: ProfileAvatar(name: _userName ?? 'Unknown'),
+          child: _getUserAvatar(),
         ),
         actions: [
           GestureDetector(
@@ -122,7 +137,7 @@ class _HeadbarState extends State<Headbar> {
         ),
         leading: Padding(
           padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: ProfileAvatar(name: _userName ?? 'Unknown'),
+          child: _getUserAvatar(),
         ),
         actions: [
           Padding(

@@ -1,224 +1,295 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:teammate/theme/app_colors.dart';
-import 'dart:ui';
 
 class ProfileAvatar extends StatelessWidget {
   final String name;
   final double size;
-  final Color? backgroundColor;
-  final Color? textColor;
-  final String? profileImageUrl;
-  final bool isOnline;
+  final String? imageUrl;
+  final Color backgroundColor;
+  final Color textColor;
   final VoidCallback? onTap;
-  final bool showShadow;
+  final BoxBorder? border;
 
   const ProfileAvatar({
-    super.key,
+    Key? key,
     required this.name,
-    this.size = 36.0,
-    this.backgroundColor,
-    this.textColor,
-    this.profileImageUrl,
-    this.isOnline = false,
+    this.size = 40,
+    this.imageUrl,
+    this.backgroundColor = AppColors.secondary,
+    this.textColor = Colors.white,
     this.onTap,
-    this.showShadow = true,
-  });
+    this.border, String? profileImageUrl,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final String initial = _getInitial(name);
-
-    // Get color from name or use provided background color
-    final Color avatarColor = backgroundColor ?? _getColorFromName(name);
-
-    // Determine text color based on background darkness
-    final bool isDarkColor = _isDarkColor(avatarColor);
-    final Color actualTextColor =
-        textColor ?? (isDarkColor ? Colors.white : Colors.grey[800]!);
+    final String initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.transparent,
-        ),
-        child: Stack(
-          children: [
-            // Main avatar circle
-            Center(
-              child: Container(
-                width: size * 0.95,
-                height: size * 0.95,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      profileImageUrl == null || profileImageUrl!.isEmpty
-                          ? avatarColor
-                          : Colors.grey[200],
-                  boxShadow:
-                      showShadow
-                          ? [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                              spreadRadius: 0,
-                            ),
-                            BoxShadow(
-                              color: avatarColor.withOpacity(0.1),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                              spreadRadius: 2,
-                            ),
-                          ]
-                          : null,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.9),
-                    width: size * 0.02,
-                  ),
-                  image:
-                      profileImageUrl != null && profileImageUrl!.isNotEmpty
-                          ? DecorationImage(
-                            image: NetworkImage(profileImageUrl!),
-                            fit: BoxFit.cover,
-                          )
-                          : null,
-                ),
-                child:
-                    profileImageUrl == null || profileImageUrl!.isEmpty
-                        ? Center(
-                          child: Text(
-                            initial,
-                            style: TextStyle(
-                              color: actualTextColor,
-                              fontSize: size * 0.36,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        )
-                        : null,
-              ),
-            ),
+      child:
+          imageUrl != null && imageUrl!.isNotEmpty
+              ? _buildNetworkAvatar(initial)
+              : _buildInitialAvatar(initial),
+    );
+  }
 
-            // Optional online status indicator
-            if (isOnline)
-              Positioned(
-                right: size * 0.05,
-                bottom: size * 0.05,
-                child: Container(
-                  width: size * 0.28,
-                  height: size * 0.28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.green,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: size * 0.035,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
-                        spreadRadius: 0,
+  Widget _buildNetworkAvatar(String fallbackInitial) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, border: border),
+      child: ClipOval(
+        child: CachedNetworkImage(
+          imageUrl: imageUrl!,
+          fit: BoxFit.cover,
+          placeholder:
+              (context, url) => Container(
+                color: backgroundColor.withOpacity(0.3),
+                child: Center(
+                  child: SizedBox(
+                    width: size / 3,
+                    height: size / 3,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        backgroundColor.withOpacity(0.7),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Subtle highlight effect (top-left inner white gradient)
-            Center(
-              child: ClipOval(
-                child: Container(
-                  width: size * 0.95,
-                  height: size * 0.95,
-                  foregroundDecoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withOpacity(0.15),
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.05),
-                      ],
-                      stops: const [0.0, 0.6, 1.0],
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+          errorWidget:
+              (context, url, error) => _buildInitialAvatar(fallbackInitial),
         ),
       ),
     );
   }
 
-  // Generate a color based on the user's name
-  Color _getColorFromName(String name) {
-    if (name.isEmpty) {
-      return Colors.grey;
-    }
+  Widget _buildInitialAvatar(String initial) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        border: border,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: size * 0.4,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-    // Minimal and modern color palette
-    final List<Color> colorOptions = [
-      const Color(0xFF5E97F6), // Blue
-      const Color(0xFF4DD0E1), // Cyan
-      const Color(0xFF4CAF50), // Green
-      const Color(0xFFF06292), // Pink
-      const Color(0xFF9575CD), // Purple
-      const Color(0xFFFF8A65), // Orange
-      const Color(0xFF7E57C2), // Deep Purple
-      const Color(0xFF26A69A), // Teal
-      const Color(0xFFAB47BC), // Purple
-      const Color(0xFF66BB6A), // Light Green
-      const Color(0xFFEC407A), // Pink
-      const Color(0xFF42A5F5), // Light Blue
-      const Color(0xFF78909C), // Blue Grey
-      const Color(0xFF5C6BC0), // Indigo
-      const Color(0xFFFFCA28), // Amber
-      const Color(0xFF7CB342), // Light Green
-    ];
+class ProfileAvatarGroup extends StatelessWidget {
+  final List<String> imageUrls;
+  final List<String> names;
+  final double avatarSize;
+  final double overlap;
+  final int maxDisplayed;
+  final VoidCallback? onMoreTap;
 
-    // Use hash code to deterministically select a color
-    final int colorIndex = name.hashCode.abs() % colorOptions.length;
-    return colorOptions[colorIndex];
+  const ProfileAvatarGroup({
+    Key? key,
+    required this.imageUrls,
+    required this.names,
+    this.avatarSize = 36,
+    this.overlap = 0.3,
+    this.maxDisplayed = 4,
+    this.onMoreTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Calculate how many we can display
+    final int totalToShow =
+        imageUrls.length > maxDisplayed ? maxDisplayed : imageUrls.length;
+
+    // Calculate total width
+    final double totalWidth =
+        avatarSize + (avatarSize * (1 - overlap) * (totalToShow - 1));
+
+    return SizedBox(
+      width: totalWidth,
+      height: avatarSize,
+      child: Stack(
+        children: [
+          // Display avatars with specified overlap
+          for (int i = 0; i < totalToShow; i++)
+            Positioned(
+              left: i * (avatarSize * (1 - overlap)),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child:
+                    i < totalToShow - 1 || imageUrls.length <= maxDisplayed
+                        ? ProfileAvatar(
+                          imageUrl: i < imageUrls.length ? imageUrls[i] : null,
+                          name: i < names.length ? names[i] : '?',
+                          size: avatarSize,
+                        )
+                        : _buildMoreAvatars(
+                          imageUrls.length - maxDisplayed + 1,
+                        ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
-  // Determine if a color is dark (to use white text) or light (to use dark text)
-  bool _isDarkColor(Color color) {
-    // Calculate relative luminance using formula: 0.299*R + 0.587*G + 0.114*B
-    final double luminance =
-        (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
-    return luminance < 0.5;
+  Widget _buildMoreAvatars(int count) {
+    return GestureDetector(
+      onTap: onMoreTap,
+      child: Container(
+        width: avatarSize,
+        height: avatarSize,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            "+$count",
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    );
   }
+}
 
-  String _getInitial(String name) {
-    if (name.isEmpty) return '?';
-    final parts = name.trim().split(' ');
-    if (parts.isEmpty) return '?';
+class ProfileHeader extends StatelessWidget {
+  final String? imageUrl;
+  final String name;
+  final String? subtitle;
+  final VoidCallback? onAvatarTap;
+  final Widget? trailing;
+  final double avatarSize;
 
-    // If there's only one part, return its first letter
-    if (parts.length == 1) {
-      return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
-    }
+  const ProfileHeader({
+    Key? key,
+    this.imageUrl,
+    required this.name,
+    this.subtitle,
+    this.onAvatarTap,
+    this.trailing,
+    this.avatarSize = 50,
+  }) : super(key: key);
 
-    // If there are multiple parts, return the first letter of the first and last parts
-    final firstInitial =
-        parts.first.isNotEmpty ? parts.first[0].toUpperCase() : '';
-    final lastInitial =
-        parts.last.isNotEmpty ? parts.last[0].toUpperCase() : '';
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        ProfileAvatar(
+          imageUrl: imageUrl,
+          name: name,
+          size: avatarSize,
+          onTap: onAvatarTap,
+          border: Border.all(color: AppColors.background, width: 2),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (trailing != null) trailing!,
+      ],
+    );
+  }
+}
 
-    // If both initials are available, return them combined
-    if (firstInitial.isNotEmpty && lastInitial.isNotEmpty) {
-      return '$firstInitial$lastInitial';
-    }
+class ProfileGrid extends StatelessWidget {
+  final List<Map<String, dynamic>> profiles;
+  final Function(Map<String, dynamic> profile)? onProfileTap;
+  final int crossAxisCount;
+  final double spacing;
+  final double avatarSize;
 
-    // Otherwise fall back to just the first initial or a placeholder
-    return firstInitial.isNotEmpty ? firstInitial : '?';
+  const ProfileGrid({
+    Key? key,
+    required this.profiles,
+    this.onProfileTap,
+    this.crossAxisCount = 4,
+    this.spacing = 16.0,
+    this.avatarSize = 60.0,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
+      ),
+      itemCount: profiles.length,
+      itemBuilder: (context, index) {
+        final profile = profiles[index];
+        final name = profile['name'] as String? ?? '';
+        final imageUrl = profile['imageUrl'] as String?;
+
+        return GestureDetector(
+          onTap: onProfileTap != null ? () => onProfileTap!(profile) : null,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ProfileAvatar(name: name, imageUrl: imageUrl, size: avatarSize),
+              const SizedBox(height: 8),
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
