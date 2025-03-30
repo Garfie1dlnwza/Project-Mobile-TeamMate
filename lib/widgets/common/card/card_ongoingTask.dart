@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/screens/details/task_detail_admin_page.dart';
 
-import 'package:teammate/screens/details/task_detail_page.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_task_service.dart';
