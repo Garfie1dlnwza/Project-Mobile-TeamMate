@@ -385,13 +385,13 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: AppColors.primary,
+        // foregroundColor: AppColors.primary,
         title: const Text(
-          'Create Document',
+          'CREATE DOCUMENT',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-            fontSize: 22,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
         ),
         leading: IconButton(

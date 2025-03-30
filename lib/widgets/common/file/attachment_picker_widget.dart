@@ -32,14 +32,14 @@ class AttachmentPickerWidget extends StatelessWidget {
           _buildAttachmentOption(
             context: context,
             icon: Icons.photo_library_outlined,
-            label: 'รูปภาพ',
+            label: 'image',
             color: Colors.green.shade600,
             onTap: () => _pickImage(context),
           ),
           _buildAttachmentOption(
             context: context,
             icon: Icons.attach_file_outlined,
-            label: 'ไฟล์',
+            label: 'file',
             color: Colors.orange.shade600,
             onTap: () => _pickFile(context),
           ),

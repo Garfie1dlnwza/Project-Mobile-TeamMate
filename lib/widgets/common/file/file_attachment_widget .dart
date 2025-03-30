@@ -189,12 +189,12 @@ class FileAttachmentWidget extends StatelessWidget {
       } else {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('ไม่สามารถเปิดไฟล์ได้: $url')));
+        ).showSnackBar(SnackBar(content: Text('can\'t open file: $url')));
       }
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+      ).showSnackBar(SnackBar(content: Text('error: $e')));
     }
   }
 }
