@@ -7,6 +7,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/theme/app_colors.dart';
+import 'package:teammate/services/file_attachment_service.dart';
+import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
+import 'package:teammate/widgets/common/file/uploading_attachment_widget.dart';
+import 'package:flutter_dropzone/flutter_dropzone.dart';
 
 class CreateDocumentPage extends StatefulWidget {
   final String projectId;
@@ -25,59 +29,33 @@ class CreateDocumentPage extends StatefulWidget {
 class _CreateDocumentPageState extends State<CreateDocumentPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  String? _attachmentPath;
-  Uint8List? _attachmentBytes;
-  String? _attachmentName;
-  String? _attachmentSize;
-  String? _attachmentType;
+
+  // For attachments
+  List<FileAttachment> _attachments = [];
+  List<FileAttachment> _uploadingAttachments = [];
+  Map<String, double> _uploadProgress = {};
+
   bool _isLoading = false;
   bool _isUploading = false;
-  double _uploadProgress = 0.0;
+  bool _isDragging = false;
+
+  late DropzoneViewController _dropzoneController;
 
   // Firebase instances
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FileAttachmentService _fileAttachmentService = FileAttachmentService();
 
-  Future<void> _pickAttachment() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-        allowMultiple: false,
-        withData: kIsWeb,
-      );
+  void _handleAddAttachment(FileAttachment attachment) {
+    setState(() {
+      _attachments.add(attachment);
+    });
+  }
 
-      if (result != null) {
-        final file = result.files.single;
-
-        // Calculate file size in appropriate units
-        String fileSize;
-        int bytes = file.size;
-
-        if (bytes < 1024) {
-          fileSize = '$bytes B';
-        } else if (bytes < 1024 * 1024) {
-          fileSize = '${(bytes / 1024).toStringAsFixed(1)} KB';
-        } else if (bytes < 1024 * 1024 * 1024) {
-          fileSize = '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-        } else {
-          fileSize = '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-        }
-
-        setState(() {
-          _attachmentName = file.name;
-          _attachmentSize = fileSize;
-          _attachmentType = file.extension?.toUpperCase() ?? 'UNKNOWN';
-
-          if (kIsWeb) {
-            _attachmentBytes = file.bytes;
-          } else {
-            _attachmentPath = file.path;
-          }
-        });
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error selecting file: $e');
-    }
+  void _removeAttachment(FileAttachment attachment) {
+    setState(() {
+      _attachments.remove(attachment);
+    });
   }
 
   void _showErrorSnackBar(String message) {
@@ -111,21 +89,139 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
     );
   }
 
+  Future<void> _handleFileDrop(dynamic event) async {
+    setState(() {
+      _isDragging = false;
+    });
+
+    if (!kIsWeb) return; // Only process for web platform
+
+    try {
+      final name = await _dropzoneController.getFilename(event);
+      final mime = await _dropzoneController.getFileMIME(event);
+      final size = await _dropzoneController.getFileSize(event);
+      final fileBytes = await _dropzoneController.getFileData(event);
+
+      // Determine file type from MIME or fallback to extension
+      String fileType = mime.split('/').last.toUpperCase();
+      if (name.contains('.')) {
+        final extension = name.split('.').last.toUpperCase();
+        if (extension.isNotEmpty) {
+          fileType = extension;
+        }
+      }
+
+      // Calculate file size string
+      String fileSize;
+      if (size < 1024) {
+        fileSize = '$size B';
+      } else if (size < 1024 * 1024) {
+        fileSize = '${(size / 1024).toStringAsFixed(1)} KB';
+      } else if (size < 1024 * 1024 * 1024) {
+        fileSize = '${(size / (1024 * 1024)).toStringAsFixed(1)} MB';
+      } else {
+        fileSize = '${(size / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+      }
+
+      // Check if it's an image
+      bool isImage =
+          ['JPG', 'JPEG', 'PNG', 'GIF', 'WEBP', 'BMP'].contains(fileType) ||
+          mime.startsWith('image/');
+
+      // Create FileAttachment object
+      final attachment = FileAttachment(
+        fileName: name,
+        fileType: fileType,
+        fileSize: fileSize,
+        fileBytes: fileBytes,
+        isImage: isImage,
+      );
+
+      setState(() {
+        _attachments.add(attachment);
+      });
+    } catch (e) {
+      _showErrorSnackBar('Error processing dropped file: $e');
+    }
+  }
+
+  Future<void> _selectFiles() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: true,
+        withData: kIsWeb,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        for (var file in result.files) {
+          // Calculate file size string
+          String fileSize;
+          int bytes = file.size;
+
+          if (bytes < 1024) {
+            fileSize = '$bytes B';
+          } else if (bytes < 1024 * 1024) {
+            fileSize = '${(bytes / 1024).toStringAsFixed(1)} KB';
+          } else if (bytes < 1024 * 1024 * 1024) {
+            fileSize = '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+          } else {
+            fileSize =
+                '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+          }
+
+          String fileType = file.extension?.toUpperCase() ?? 'UNKNOWN';
+          bool isImage = [
+            'JPG',
+            'JPEG',
+            'PNG',
+            'GIF',
+            'WEBP',
+            'BMP',
+          ].contains(fileType);
+
+          Uint8List? fileBytes;
+          String? localPath;
+
+          if (kIsWeb) {
+            fileBytes = file.bytes;
+          } else {
+            localPath = file.path;
+          }
+
+          final attachment = FileAttachment(
+            fileName: file.name,
+            fileType: fileType,
+            fileSize: fileSize,
+            fileBytes: fileBytes,
+            localPath: localPath,
+            isImage: isImage,
+          );
+
+          setState(() {
+            _attachments.add(attachment);
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error selecting files: $e');
+    }
+  }
+
   Future<void> _createDocument() async {
     if (_titleController.text.isEmpty) {
-      _showErrorSnackBar('กรุณากรอกชื่อเอกสาร');
+      _showErrorSnackBar('Please enter a document title');
       return;
     }
 
-    if (_attachmentPath == null && _attachmentBytes == null) {
-      _showErrorSnackBar('กรุณาแนบไฟล์');
+    if (_attachments.isEmpty) {
+      _showErrorSnackBar('Please attach at least one file');
       return;
     }
 
     setState(() {
       _isLoading = true;
       _isUploading = true;
-      _uploadProgress = 0.0;
     });
 
     try {
@@ -139,49 +235,70 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
               .collection('documents')
               .doc();
 
-      // Upload file to Firebase Storage with progress tracking
-      final String storageRef =
-          'projects/${widget.projectId}/departments/${widget.departmentId}/documents/${docRef.id}/${_attachmentName}';
+      // Upload all attachments
+      List<Map<String, dynamic>> uploadedAttachments = [];
+      String mainDocumentUrl = '';
 
-      // Start upload task based on platform
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        uploadTask = _storage
-            .ref(storageRef)
-            .putData(
-              _attachmentBytes!,
-              SettableMetadata(
-                contentType: _getContentType(_attachmentType ?? ''),
-              ),
-            );
-      } else {
-        uploadTask = _storage.ref(storageRef).putFile(File(_attachmentPath!));
+      for (var attachment in _attachments) {
+        setState(() {
+          _uploadingAttachments.add(attachment);
+          _uploadProgress[attachment.fileName ?? ''] = 0.0;
+        });
+
+        final uploadedAttachment = await _fileAttachmentService.uploadFile(
+          attachment: attachment,
+          storagePath:
+              'projects/${widget.projectId}/departments/${widget.departmentId}/documents/${docRef.id}',
+          onProgress: (progress) {
+            setState(() {
+              _uploadProgress[attachment.fileName ?? ''] = progress;
+            });
+          },
+        );
+
+        if (uploadedAttachment != null &&
+            uploadedAttachment.downloadUrl != null) {
+          // For the first attachment, set it as the main document URL
+          if (mainDocumentUrl.isEmpty) {
+            mainDocumentUrl = uploadedAttachment.downloadUrl!;
+          }
+
+          // Add to attachments array
+          uploadedAttachments.add({
+            'fileName': uploadedAttachment.fileName,
+            'fileSize': uploadedAttachment.fileSize,
+            'fileType': uploadedAttachment.fileType,
+            'downloadUrl': uploadedAttachment.downloadUrl,
+            'isImage': uploadedAttachment.isImage,
+          });
+        }
+
+        setState(() {
+          _uploadingAttachments.remove(attachment);
+        });
       }
 
-      // Track upload progress
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
-        setState(() {
-          _uploadProgress = progress;
-        });
-      });
-
-      // Wait for upload to complete
-      await uploadTask;
-
-      // Get download URL
-      String downloadUrl = await _storage.ref(storageRef).getDownloadURL();
-
-      // Now create the document in Firestore
-      await docRef.set({
+      // Create document data
+      Map<String, dynamic> documentData = {
         'title': _titleController.text,
         'description': _descriptionController.text,
-        'fileName': _attachmentName,
-        'fileType': _attachmentType,
-        'fileSize': _attachmentSize,
-        'downloadUrl': downloadUrl,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+        'attachments': uploadedAttachments,
+      };
+
+      // If we have at least one attachment, add main document info for backward compatibility
+      if (uploadedAttachments.isNotEmpty) {
+        final mainAttachment = uploadedAttachments.first;
+        documentData.addAll({
+          'fileName': mainAttachment['fileName'],
+          'fileType': mainAttachment['fileType'],
+          'fileSize': mainAttachment['fileSize'],
+          'downloadUrl': mainAttachment['downloadUrl'],
+        });
+      }
+
+      // Save document to Firestore
+      await docRef.set(documentData);
 
       // Create a feed item for this document
       await _firestore
@@ -191,93 +308,25 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
           .add({
             'type': 'document',
             'createdAt': FieldValue.serverTimestamp(),
-            'data': {
-              'documentId': docRef.id,
-              'title': _titleController.text,
-              'description': _descriptionController.text,
-              'fileName': _attachmentName,
-              'fileType': _attachmentType,
-              'fileSize': _attachmentSize,
-              'downloadUrl': downloadUrl,
-            },
+            'data': documentData,
           });
 
       setState(() {
         _isUploading = false;
-        _uploadProgress = 1.0;
+        _isLoading = false;
       });
 
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (!mounted) return;
-
-      _showSuccessSnackBar('สร้างเอกสารสำเร็จ!');
+      _showSuccessSnackBar('Document created successfully!');
       Navigator.pop(context, docRef.id);
     } catch (e) {
       setState(() {
         _isUploading = false;
+        _isLoading = false;
       });
 
       if (!mounted) return;
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      _showErrorSnackBar('Error: $e');
     }
-  }
-
-  String _getContentType(String fileType) {
-    switch (fileType.toLowerCase()) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'doc':
-      case 'docx':
-        return 'application/msword';
-      case 'xls':
-      case 'xlsx':
-        return 'application/vnd.ms-excel';
-      case 'ppt':
-      case 'pptx':
-        return 'application/vnd.ms-powerpoint';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'gif':
-        return 'image/gif';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  void _simulateUploadProgress() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_isUploading && mounted) {
-        setState(() {
-          _uploadProgress = 0.15;
-        });
-
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (_isUploading && mounted) {
-            setState(() {
-              _uploadProgress = 0.45;
-            });
-
-            Future.delayed(const Duration(milliseconds: 800), () {
-              if (_isUploading && mounted) {
-                setState(() {
-                  _uploadProgress = 0.75;
-                });
-              }
-            });
-          }
-        });
-      }
-    });
   }
 
   @override
@@ -394,7 +443,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                'Upload a file to share with your team members',
+                                'Upload files to share with your team members',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.secondary,
@@ -531,235 +580,246 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
 
                         const SizedBox(height: 24),
 
-                        // Attachment section
-                        const Row(
+                        // Attachments section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.attach_file_outlined,
-                              size: 20,
-                              color: AppColors.primary,
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.attach_file_outlined,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Attachments',
+                                  style: TextStyle(
+                                    color: AppColors.labelText,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Attachment',
-                              style: TextStyle(
-                                color: AppColors.labelText,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                            TextButton.icon(
+                              onPressed: _selectFiles,
+                              icon: const Icon(
+                                Icons.add,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                              label: const Text(
+                                'Add Files',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
 
-                        // File upload area
-                        if (_attachmentName == null)
-                          GestureDetector(
-                            onTap: _pickAttachment,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 32,
-                                horizontal: 24,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.grey[200]!,
-                                  width: 1,
-                                  style: BorderStyle.solid,
-                                ),
-                              ),
-                              child: Column(
+                        // Display selected attachments or drop zone
+                        if (_attachments.isEmpty)
+                          // Drop zone for files
+                          kIsWeb
+                              ? Stack(
                                 children: [
+                                  // Dropzone
                                   Container(
-                                    padding: const EdgeInsets.all(16),
+                                    width: double.infinity,
+                                    height: 200,
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withOpacity(
-                                        0.07,
-                                      ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.cloud_upload_outlined,
-                                      size: 32,
-                                      color: AppColors.primary.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Drag and drop your file here',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text(
-                                        'or ',
-                                        style: TextStyle(
-                                          color: AppColors.secondary,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        'browse files',
-                                        style: TextStyle(
-                                          color: AppColors.primary.withOpacity(
-                                            0.8,
-                                          ),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    'Supported formats: PDF, Word, Excel, PowerPoint, Images',
-                                    style: TextStyle(
-                                      color: AppColors.secondary.withOpacity(
-                                        0.8,
-                                      ),
-                                      fontSize: 12,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )
-                        else
-                          // Selected file preview
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[200]!),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    // File icon
-                                    _buildFileIcon(),
-                                    const SizedBox(width: 16),
-                                    // File info
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _attachmentName!,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.primary,
-                                              fontSize: 15,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.primary
-                                                  .withOpacity(0.07),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              '$_attachmentType • $_attachmentSize',
-                                              style: TextStyle(
-                                                color: AppColors.primary
-                                                    .withOpacity(0.7),
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      color:
+                                          _isDragging
+                                              ? AppColors.primary.withOpacity(
+                                                0.1,
+                                              )
+                                              : Colors.grey[50],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color:
+                                            _isDragging
+                                                ? AppColors.primary
+                                                : Colors.grey[200]!,
+                                        width: _isDragging ? 2 : 1,
                                       ),
                                     ),
-                                    // Remove button
-                                    IconButton(
-                                      onPressed:
-                                          () => setState(() {
-                                            _attachmentName = null;
-                                            _attachmentPath = null;
-                                            _attachmentBytes = null;
-                                            _attachmentSize = null;
-                                            _attachmentType = null;
-                                          }),
-                                      icon: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red[50],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.close,
-                                          color: Colors.red[400],
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                // Change file button
-                                Container(
-                                  width: double.infinity,
-                                  height: 1,
-                                  color: Colors.grey[200],
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                ),
-                                InkWell(
-                                  onTap: _pickAttachment,
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                    child: Stack(
                                       children: [
-                                        Icon(
-                                          Icons.file_upload_outlined,
-                                          size: 18,
-                                          color: AppColors.primary.withOpacity(
-                                            0.8,
-                                          ),
+                                        DropzoneView(
+                                          onCreated:
+                                              (controller) =>
+                                                  _dropzoneController =
+                                                      controller,
+                                          onDrop: _handleFileDrop,
+                                          onHover:
+                                              () => setState(
+                                                () => _isDragging = true,
+                                              ),
+                                          onLeave:
+                                              () => setState(
+                                                () => _isDragging = false,
+                                              ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Change File',
-                                          style: TextStyle(
-                                            color: AppColors.primary
-                                                .withOpacity(0.8),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14,
+                                        Center(
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                _isDragging
+                                                    ? Icons.file_download
+                                                    : Icons.upload_file,
+                                                size: 48,
+                                                color:
+                                                    _isDragging
+                                                        ? AppColors.primary
+                                                        : Colors.grey[400],
+                                              ),
+                                              const SizedBox(height: 16),
+                                              Text(
+                                                _isDragging
+                                                    ? 'Drop files here to upload'
+                                                    : 'Drag and drop your files here',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500,
+                                                  color:
+                                                      _isDragging
+                                                          ? AppColors.primary
+                                                          : Colors.grey[700],
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    'or ',
+                                                    style: TextStyle(
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                  GestureDetector(
+                                                    onTap: _selectFiles,
+                                                    child: Text(
+                                                      'browse files',
+                                                      style: TextStyle(
+                                                        color:
+                                                            AppColors.primary,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                'Supported formats: PDF, Word, Excel, PowerPoint, Images',
+                                                style: TextStyle(
+                                                  color: Colors.grey[500],
+                                                  fontSize: 12,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
+                                ],
+                              )
+                              : GestureDetector(
+                                onTap: _selectFiles,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(30),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey[200]!,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.upload_file,
+                                        size: 48,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Tap to select files',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Supported formats: PDF, Word, Excel, PowerPoint, Images',
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              )
+                        else
+                          Column(
+                            children: [
+                              ...List.generate(_attachments.length, (index) {
+                                final attachment = _attachments[index];
+
+                                if (_uploadingAttachments.contains(
+                                  attachment,
+                                )) {
+                                  return UploadingAttachmentWidget(
+                                    attachment: attachment,
+                                    progress:
+                                        _uploadProgress[attachment.fileName ??
+                                            ''] ??
+                                        0.0,
+                                    themeColor: AppColors.primary,
+                                    onCancel:
+                                        () => _removeAttachment(attachment),
+                                  );
+                                } else {
+                                  return FileAttachmentWidget(
+                                    attachment: attachment,
+                                    themeColor: AppColors.primary,
+                                    onRemove:
+                                        () => _removeAttachment(attachment),
+                                  );
+                                }
+                              }),
+
+                              // Add another button
+                              TextButton.icon(
+                                onPressed: _selectFiles,
+                                icon: const Icon(
+                                  Icons.add,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                label: const Text('Add More Files'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                ),
+                              ),
+                            ],
                           ),
                       ],
                     ),
@@ -785,15 +845,17 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _attachmentName == null
+                          _attachments.isEmpty
                               ? Icons.cloud_upload_outlined
                               : Icons.check_circle_outline,
                           size: 22,
                         ),
                         const SizedBox(width: 12),
-                        const Text(
-                          'Upload Document',
-                          style: TextStyle(
+                        Text(
+                          _attachments.isEmpty
+                              ? 'Select Files'
+                              : 'Upload Document',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -844,7 +906,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                           SizedBox(
                             width: 250,
                             child: Text(
-                              'Please wait while we upload your document to Firebase Storage...',
+                              'Please wait while we upload your files to Firebase Storage...',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -852,10 +914,24 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                          if (_isUploading) ...[
+                          if (_uploadingAttachments.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Text(
+                              'Uploading: ${_uploadingAttachments.first.fileName ?? "File"}',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             LinearProgressIndicator(
-                              value: _uploadProgress,
+                              value:
+                                  _uploadProgress[_uploadingAttachments
+                                          .first
+                                          .fileName ??
+                                      ''] ??
+                                  0,
                               backgroundColor: Colors.grey[200],
                               valueColor: const AlwaysStoppedAnimation<Color>(
                                 AppColors.primary,
@@ -863,9 +939,9 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                               minHeight: 6,
                               borderRadius: BorderRadius.circular(3),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             Text(
-                              '${(_uploadProgress * 100).toInt()}%',
+                              '${((_uploadProgress[_uploadingAttachments.first.fileName ?? ''] ?? 0) * 100).toInt()}%',
                               style: const TextStyle(
                                 color: AppColors.secondary,
                                 fontWeight: FontWeight.w500,
@@ -881,50 +957,6 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFileIcon() {
-    Color iconColor;
-    IconData iconData;
-
-    if (_attachmentType == null) {
-      iconColor = Colors.grey;
-      iconData = Icons.insert_drive_file;
-    } else {
-      final type = _attachmentType!.toLowerCase();
-
-      if (type == 'pdf') {
-        iconColor = Colors.red[600]!;
-        iconData = Icons.picture_as_pdf;
-      } else if (['doc', 'docx'].contains(type)) {
-        iconColor = Colors.blue[600]!;
-        iconData = Icons.description;
-      } else if (['xls', 'xlsx', 'csv'].contains(type)) {
-        iconColor = Colors.green[600]!;
-        iconData = Icons.table_chart;
-      } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].contains(type)) {
-        iconColor = Colors.purple[600]!;
-        iconData = Icons.image;
-      } else if (['ppt', 'pptx'].contains(type)) {
-        iconColor = Colors.orange[600]!;
-        iconData = Icons.slideshow;
-      } else if (['zip', 'rar', '7z'].contains(type)) {
-        iconColor = Colors.amber[600]!;
-        iconData = Icons.folder_zip;
-      } else {
-        iconColor = Colors.blueGrey[600]!;
-        iconData = Icons.insert_drive_file;
-      }
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: iconColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(iconData, color: iconColor, size: 28),
     );
   }
 }

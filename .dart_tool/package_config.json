@@ -332,6 +332,24 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "flutter_dropzone",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_dropzone-4.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.15"
+    },
+    {
+      "name": "flutter_dropzone_platform_interface",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_dropzone_platform_interface-2.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.15"
+    },
+    {
+      "name": "flutter_dropzone_web",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_dropzone_web-4.2.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.15"
+    },
+    {
       "name": "flutter_hooks",
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_hooks-0.20.5",
       "packageUri": "lib/",
@@ -968,7 +986,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2025-03-30T12:41:56.880043Z",
+  "generated": "2025-03-30T16:55:37.311737Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.5/flutter",
