@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:teammate/services/firestore_poll_service.dart';
+import 'package:teammate/widgets/common/button/button_ok_reaction.dart';
+import 'package:teammate/widgets/common/comment.dart';
 
 class PollContent extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -24,6 +26,7 @@ class _PollContentState extends State<PollContent>
   int? _selectedOption;
   bool _hasVoted = false;
   bool _isSubmitting = false;
+  bool _showComments = false;
   final FirestorePollService _pollService = FirestorePollService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -40,23 +43,23 @@ class _PollContentState extends State<PollContent>
 
   Future<void> _checkIfUserVoted() async {
     final hasVoted = await _pollService.hasUserVoted(widget.pollId);
-    
+
     if (mounted) {
       setState(() {
         _hasVoted = hasVoted;
       });
     }
-    
+
     // If user has voted, find which option they voted for
     if (hasVoted) {
       final String? userId = _auth.currentUser?.uid;
       if (userId != null) {
         Map<String, dynamic> votes = widget.data['votes'] ?? {};
-        
+
         for (int i = 0; i < widget.data['options'].length; i++) {
           String option = widget.data['options'][i];
           List<dynamic> voters = votes[option] ?? [];
-          
+
           if (voters.contains(userId)) {
             if (mounted) {
               setState(() {
@@ -82,10 +85,10 @@ class _PollContentState extends State<PollContent>
     final List<dynamic> options = widget.data['options'] ?? [];
     final Map<String, dynamic> votes = widget.data['votes'] ?? {};
     final bool isActive = widget.data['isActive'] ?? true;
-    
+
     // Get total votes either from field or by counting
     int totalVotes = widget.data['totalVotes'] ?? 0;
-    
+
     // Fallback calculation in case totalVotes field is missing
     if (totalVotes == 0) {
       votes.forEach((key, value) {
@@ -175,13 +178,14 @@ class _PollContentState extends State<PollContent>
               children: [
                 // Option selection area
                 InkWell(
-                  onTap: isActive && (!_hasVoted || _selectedOption == index)
-                      ? () {
-                          setState(() {
-                            _selectedOption = index;
-                          });
-                        }
-                      : null,
+                  onTap:
+                      isActive && (!_hasVoted || _selectedOption == index)
+                          ? () {
+                            setState(() {
+                              _selectedOption = index;
+                            });
+                          }
+                          : null,
                   borderRadius: BorderRadius.circular(8),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -195,19 +199,26 @@ class _PollContentState extends State<PollContent>
                           height: 24,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: isSelected ? widget.themeColor : Colors.grey[200],
+                            color:
+                                isSelected
+                                    ? widget.themeColor
+                                    : Colors.grey[200],
                             border: Border.all(
-                              color: isSelected ? widget.themeColor : Colors.grey[400]!,
+                              color:
+                                  isSelected
+                                      ? widget.themeColor
+                                      : Colors.grey[400]!,
                               width: 2,
                             ),
                           ),
-                          child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : null,
+                          child:
+                              isSelected
+                                  ? const Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: Colors.white,
+                                  )
+                                  : null,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -215,7 +226,10 @@ class _PollContentState extends State<PollContent>
                             optionText,
                             style: TextStyle(
                               fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                               color: Colors.grey[800],
                             ),
                           ),
@@ -255,7 +269,8 @@ class _PollContentState extends State<PollContent>
                           // Progress
                           Container(
                             height: 8,
-                            width: MediaQuery.of(context).size.width *
+                            width:
+                                MediaQuery.of(context).size.width *
                                 0.8 *
                                 progressAnimation.value,
                             decoration: BoxDecoration(
@@ -311,56 +326,65 @@ class _PollContentState extends State<PollContent>
         if (isActive) ...[
           Center(
             child: ElevatedButton(
-              onPressed: _isSubmitting
-                  ? null
-                  : (_selectedOption != null)
+              onPressed:
+                  _isSubmitting
+                      ? null
+                      : (_selectedOption != null)
                       ? () async {
-                          setState(() {
-                            _isSubmitting = true;
-                          });
-                          
-                          try {
-                            await _pollService.submitVote(
-                              widget.pollId,
-                              options[_selectedOption!].toString(),
+                        setState(() {
+                          _isSubmitting = true;
+                        });
+
+                        try {
+                          await _pollService.submitVote(
+                            widget.pollId,
+                            options[_selectedOption!].toString(),
+                          );
+
+                          if (mounted) {
+                            setState(() {
+                              _hasVoted = true;
+                              _isSubmitting = false;
+                              _controller.reset();
+                              _controller.forward();
+                            });
+
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _hasVoted
+                                      ? 'Vote updated!'
+                                      : 'Vote submitted!',
+                                ),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
                             );
-                            
-                            if (mounted) {
-                              setState(() {
-                                _hasVoted = true;
-                                _isSubmitting = false;
-                                _controller.reset();
-                                _controller.forward();
-                              });
-                              
-                              // Show success message
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(_hasVoted ? 'Vote updated!' : 'Vote submitted!'),
-                                  backgroundColor: Colors.green,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() {
+                              _isSubmitting = false;
+                            });
+
+                            // Show error message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: ${e.toString()}'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              setState(() {
-                                _isSubmitting = false;
-                              });
-                              
-                              // Show error message
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${e.toString()}'),
-                                  backgroundColor: Colors.red,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                              );
-                            }
+                              ),
+                            );
                           }
                         }
+                      }
                       : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: widget.themeColor,
@@ -374,22 +398,25 @@ class _PollContentState extends State<PollContent>
                 ),
                 elevation: 0,
               ),
-              child: _isSubmitting
-                  ? SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        strokeWidth: 2,
+              child:
+                  _isSubmitting
+                      ? SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                          strokeWidth: 2,
+                        ),
+                      )
+                      : Text(
+                        _hasVoted ? 'Update Vote' : 'Submit Vote',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    )
-                  : Text(
-                      _hasVoted ? 'Update Vote' : 'Submit Vote',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
             ),
           ),
         ] else ...[
@@ -409,6 +436,74 @@ class _PollContentState extends State<PollContent>
                 ),
               ),
             ),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+
+        // Interaction bar with OK button and comment toggle
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              // OK reaction button
+              OkReactionButton(
+                contentId: widget.pollId,
+                contentType: 'poll',
+                themeColor: widget.themeColor,
+              ),
+
+              // Comment button
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showComments = !_showComments;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                splashColor: widget.themeColor.withOpacity(0.1),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.comment_outlined,
+                        size: 18,
+                        color: Colors.grey[700],
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Comment',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Comments section
+        if (_showComments) ...[
+          const SizedBox(height: 8),
+          Divider(color: Colors.grey[200]),
+          const SizedBox(height: 8),
+          CommentWidget(
+            contentId: widget.pollId,
+            contentType: 'poll',
+            themeColor: widget.themeColor,
           ),
         ],
       ],

@@ -4,27 +4,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/screens/details/task_detail_admin_page.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
+import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/utils/date.dart';
+import 'package:teammate/widgets/common/button/button_ok_reaction.dart';
+import 'package:teammate/widgets/common/comment.dart';
 
-class TaskContent extends StatelessWidget {
+class TaskContent extends StatefulWidget {
   final Map<String, dynamic> data;
   final Color themeColor;
 
   const TaskContent({super.key, required this.data, required this.themeColor});
 
   @override
+  State<TaskContent> createState() => _TaskContentState();
+}
+
+class _TaskContentState extends State<TaskContent> {
+  bool _showComments = false;
+  final FirestoreUserService _userService = FirestoreUserService();
+
+  @override
   Widget build(BuildContext context) {
-    final String title = data['taskTitle'] ?? 'Untitled Task';
-    final bool isSubmitted = data['isSubmit'] ?? false;
-    final bool isApproved = data['isApproved'] ?? false;
-    final bool isRejected = data['isRejected'] ?? false;
-    final Timestamp endDate = data['endTask'] ?? Timestamp.now();
+    final String title = widget.data['taskTitle'] ?? 'Untitled Task';
+    final bool isSubmitted = widget.data['isSubmit'] ?? false;
+    final bool isApproved = widget.data['isApproved'] ?? false;
+    final bool isRejected = widget.data['isRejected'] ?? false;
+    final Timestamp endDate = widget.data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
     final bool isOverdue =
         DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
     final Duration timeLeft = dueDate.difference(DateTime.now());
     final bool isUrgent =
         timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
+    final String taskId = widget.data['taskId'] ?? widget.data['id'] ?? '';
+    final String creatorId = widget.data['creatorId'] ?? '';
 
     return InkWell(
       onTap: () {
@@ -32,6 +45,7 @@ class TaskContent extends StatelessWidget {
         _checkUserRoleAndNavigate(context);
       },
       child: Card(
+        shadowColor: Colors.transparent,
         elevation: 1.5,
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -40,6 +54,61 @@ class TaskContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Creator info (if available)
+              if (creatorId.isNotEmpty) ...[
+                FutureBuilder<String?>(
+                  future: _userService.findNameById(creatorId),
+                  builder: (context, snapshot) {
+                    final String creatorName = snapshot.data ?? 'Unknown User';
+
+                    return Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: Colors.grey[200],
+                          child: Text(
+                            creatorName.isNotEmpty
+                                ? creatorName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: widget.themeColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Created by $creatorName',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (widget.data['startTask'] != null)
+                                Text(
+                                  'on ${_formatStartDate(widget.data['startTask'])}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                Divider(height: 1, color: Colors.grey[200]),
+                const SizedBox(height: 12),
+              ],
+
               // Status badge
               Row(
                 children: [
@@ -59,7 +128,13 @@ class TaskContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _getPriorityText(isApproved, isRejected, isSubmitted, isOverdue, isUrgent),
+                      _getPriorityText(
+                        isApproved,
+                        isRejected,
+                        isSubmitted,
+                        isOverdue,
+                        isUrgent,
+                      ),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -98,30 +173,133 @@ class TaskContent extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
 
+              // Task description if available
+              if (widget.data['taskDescription'] != null &&
+                  widget.data['taskDescription'].toString().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.data['taskDescription'],
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+
               const SizedBox(height: 16),
 
-              // Task action buttons
-              // Row(
-              //   mainAxisAlignment: MainAxisAlignment.end,
-              //   children: [
-              //     _buildActionButton(
-              //       icon: Icons.remove_red_eye,
-              //       label: 'Details',
-              //       color: Colors.grey[700]!,
-              //       backgroundColor: Colors.grey[200]!,
-              //       onPressed: () {
-              //         // Navigate to details page
-              //         _checkUserRoleAndNavigate(context);
-              //       },
-              //     ),
-              //     const SizedBox(width: 10),
-              //   ],
-              // ),
+              // Interaction bar with OK button and comment toggle
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey[200]!, width: 1),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // OK reaction button
+                    OkReactionButton(
+                      contentId: taskId,
+                      contentType: 'task',
+                      themeColor: widget.themeColor,
+                    ),
+
+                    // Comment button
+                    InkWell(
+                      onTap: () {
+                        setState(() {
+                          _showComments = !_showComments;
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      splashColor: widget.themeColor.withOpacity(0.1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.comment_outlined,
+                              size: 18,
+                              color: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Comment',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Details button
+                    InkWell(
+                      onTap: () {
+                        _checkUserRoleAndNavigate(context);
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      splashColor: widget.themeColor.withOpacity(0.1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Details',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Comments section
+              if (_showComments) ...[
+                const SizedBox(height: 8),
+                Divider(color: Colors.grey[200]),
+                const SizedBox(height: 8),
+                CommentWidget(
+                  contentId: taskId,
+                  contentType: 'task',
+                  themeColor: widget.themeColor,
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  String _formatStartDate(dynamic timestamp) {
+    if (timestamp is Timestamp) {
+      final date = timestamp.toDate();
+      return '${date.day}/${date.month}/${date.year}';
+    }
+    return '';
   }
 
   Future<void> _checkUserRoleAndNavigate(BuildContext context) async {
@@ -134,16 +312,13 @@ class TaskContent extends StatelessWidget {
 
     final userId = currentUser.uid;
 
-    final departmentId = data['departmentId'];
+    final departmentId = widget.data['departmentId'];
     final department = await FirestoreDepartmentService().getDepartmentById(
       departmentId,
     );
     final projectId = department['projectId'];
 
     bool isAdminOrHead = false;
-    print('✅ User ID: $userId');
-    print('✅ Department ID: $departmentId');
-    print('✅ Project ID: $projectId');
 
     try {
       // Check if user is head of the project
@@ -171,38 +346,15 @@ class TaskContent extends StatelessWidget {
   }
 
   void _navigateToDetailsPage(BuildContext context, bool isAdminOrHead) {
-    // if (isAdminOrHead) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder:
             (context) => TaskDetailsAdminPage(
-              data: data,
-              themeColor: themeColor,
+              data: widget.data,
+              themeColor: widget.themeColor,
               isAdminOrHead: isAdminOrHead,
             ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required Color backgroundColor,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 16),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
-        foregroundColor: color,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }

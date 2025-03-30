@@ -3,6 +3,8 @@ import 'package:teammate/screens/myworks/work_page2.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class ProjectCard extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -16,19 +18,96 @@ class ProjectCard extends StatelessWidget {
     required this.userService,
   });
 
-  // Calculate progress based on completed tasks
+  // Calculate progress based on completed and approved tasks
   double _calculateProgress() {
-    if (data['tasks'] == null || (data['tasks'] as List).isEmpty) {
+    // Check if tasks exists and is not empty
+    if (data['tasks'] == null ||
+        !(data['tasks'] is List) ||
+        (data['tasks'] as List).isEmpty) {
+      return 0.0;
+    }
+
+    // Get the project ID to fetch task details
+    final String projectId = data['projectId'] ?? data['id'] ?? '';
+    if (projectId.isEmpty) {
       return 0.0;
     }
 
     final int totalTasks = (data['tasks'] as List).length;
-    final int completedTasks =
-        data['completedTasks'] != null
-            ? (data['completedTasks'] as List).length
-            : 0;
+
+    // Get completed tasks count (approved tasks)
+    int completedTasks = 0;
+
+    // Check if completedTasks or approvedTasks field exists
+    if (data['completedTasks'] != null && data['completedTasks'] is List) {
+      completedTasks = (data['completedTasks'] as List).length;
+    } else if (data['approvedTasks'] != null && data['approvedTasks'] is List) {
+      completedTasks = (data['approvedTasks'] as List).length;
+    } else {
+      // If no specific field for completed tasks, we'll count approved tasks manually
+      // This is just a fallback if the direct field is not available
+      if (data['taskDetails'] != null && data['taskDetails'] is List) {
+        for (var task in (data['taskDetails'] as List)) {
+          if (task is Map && task['isApproved'] == true) {
+            completedTasks++;
+          }
+        }
+      }
+    }
 
     return totalTasks > 0 ? completedTasks / totalTasks : 0.0;
+  }
+
+  // Format the due date appropriately
+  String _formatDueDate() {
+    // Check if dueDate exists
+    if (data['dueDate'] == null) {
+      return 'No deadline';
+    }
+
+    try {
+      // Handle different date formats
+      if (data['dueDate'] is Timestamp) {
+        // Firebase Timestamp
+        final Timestamp timestamp = data['dueDate'] as Timestamp;
+        final DateTime dateTime = timestamp.toDate();
+        return DateFormat('MMM d, yyyy').format(dateTime);
+      } else if (data['dueDate'] is String) {
+        // String date
+        final String dateStr = data['dueDate'] as String;
+        if (dateStr.isEmpty) {
+          return 'No deadline';
+        }
+
+        try {
+          final DateTime dateTime = DateTime.parse(dateStr);
+          return DateFormat('MMM d, yyyy').format(dateTime);
+        } catch (e) {
+          // If parsing fails, return the string as is
+          return dateStr;
+        }
+      } else if (data['dueDate'] is DateTime) {
+        // DateTime object
+        final DateTime dateTime = data['dueDate'] as DateTime;
+        return DateFormat('MMM d, yyyy').format(dateTime);
+      } else {
+        // Unknown format
+        return 'No deadline';
+      }
+    } catch (e) {
+      print('Error formatting date: $e');
+      return 'No deadline';
+    }
+  }
+
+  // Get task count properly
+  String _getTaskCountText() {
+    if (data['tasks'] == null || !(data['tasks'] is List)) {
+      return 'No tasks';
+    }
+
+    final int taskCount = (data['tasks'] as List).length;
+    return '$taskCount ${taskCount == 1 ? 'Task' : 'Tasks'}';
   }
 
   @override
@@ -37,8 +116,11 @@ class ProjectCard extends StatelessWidget {
     final double progress = _calculateProgress();
     final int progressPercent = (progress * 100).round();
 
-    // Format due date if available
-    String dueDateDisplay = data['dueDate'] ?? 'No deadline';
+    // Format due date
+    final String dueDateDisplay = _formatDueDate();
+
+    // Get task count text
+    final String taskCountText = _getTaskCountText();
 
     // Define a more elegant color based on project color with reduced opacity
     final elegantColor = Color.lerp(projectColor, Colors.white, 0.7)!;
@@ -149,35 +231,35 @@ class ProjectCard extends StatelessWidget {
                                   Row(
                                     children: [
                                       Text(
-                                        data['tasks'] != null
-                                            ? '${(data['tasks'] as List).length} Tasks'
-                                            : 'No tasks',
+                                        taskCountText,
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: AppColors.secondary,
                                         ),
                                       ),
-                                      Container(
-                                        margin: const EdgeInsets.symmetric(
-                                          horizontal: 8,
+                                      if (taskCountText != 'No tasks') ...[
+                                        Container(
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          width: 3,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.secondary
+                                                .withOpacity(0.5),
+                                            shape: BoxShape.circle,
+                                          ),
                                         ),
-                                        width: 3,
-                                        height: 3,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.secondary
-                                              .withOpacity(0.5),
-                                          shape: BoxShape.circle,
+                                        Text(
+                                          dueDateDisplay,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.secondary,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        dueDateDisplay,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.secondary,
-                                        ),
-                                      ),
+                                      ],
                                     ],
                                   ),
                                 ],
@@ -198,9 +280,10 @@ class ProjectCard extends StatelessWidget {
                     children: [
                       // Project manager with elegant styling
                       FutureBuilder<String?>(
-                        future: userService.findNameById(data['headId']),
+                        future: userService.findNameById(data['headId'] ?? ''),
                         builder: (context, userSnapshot) {
-                          final managerName = userSnapshot.data ?? 'Unknown';
+                          final managerName =
+                              userSnapshot.data ?? 'Not assigned';
                           return Row(
                             children: [
                               Container(
@@ -248,13 +331,27 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       // Progress section with elegant styling
-                      Text(
-                        'Project Progress',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.labelText,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Project Progress',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.labelText,
+                            ),
+                          ),
+                          if (taskCountText == 'No tasks')
+                            Text(
+                              'No tasks to track',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                                color: AppColors.secondary.withOpacity(0.7),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Stack(
@@ -278,7 +375,7 @@ class ProjectCard extends StatelessWidget {
                                 width:
                                     MediaQuery.of(context).size.width *
                                     progress *
-                                    0.7,
+                                    0.7, // Adjust for card width and padding
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     begin: Alignment.centerLeft,
@@ -298,7 +395,9 @@ class ProjectCard extends StatelessWidget {
                           Positioned.fill(
                             child: Center(
                               child: Text(
-                                '$progressPercent% Complete',
+                                taskCountText == 'No tasks'
+                                    ? 'No progress to show'
+                                    : '$progressPercent% Complete',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,

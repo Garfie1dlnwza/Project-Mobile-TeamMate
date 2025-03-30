@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/services/firestore_user_service.dart';
+import 'package:teammate/widgets/common/button/button_ok_reaction.dart';
+import 'package:teammate/widgets/common/comment.dart';
 
 class PostContent extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -14,20 +17,27 @@ class PostContent extends StatefulWidget {
 
 class _PostContentState extends State<PostContent> {
   bool _isExpanded = false;
-  final User? userCreator = FirebaseAuth.instance.currentUser;
-
+  bool _showComments = false;
+  final FirestoreUserService _userService = FirestoreUserService();
   static const int _maxLines = 3;
 
-  @override
-  void initlized() {
-    print(widget.data);
+  // ฟังก์ชันสำหรับการแสดง/ซ่อนคอมเมนต์
+  void _toggleComments() {
+    setState(() {
+      _showComments = !_showComments;
+      // เมื่อแสดงคอมเมนต์ ตรวจสอบว่าควรขยายข้อความหรือไม่
+      if (_showComments && !_isExpanded) {
+        _isExpanded = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final String title = widget.data['title'] ?? '';
     final String description = widget.data['description'] ?? '';
-    final String? creatorName = userCreator!.displayName;
+    final String creatorId = widget.data['creator'] ?? '';
+    final String postId = widget.data['id'] ?? '';
 
     // Calculate if the text would overflow
     final TextSpan textSpan = TextSpan(
@@ -47,189 +57,253 @@ class _PostContentState extends State<PostContent> {
     );
 
     // Use MediaQuery to get screen width for measuring text
-    textPainter.layout(
-      maxWidth: MediaQuery.of(context).size.width - 40,
-    ); // Adjust for padding
+    textPainter.layout(maxWidth: MediaQuery.of(context).size.width - 40);
     final bool hasTextOverflow = textPainter.didExceedMaxLines;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Post author info row
-        Row(
+    // ล้อมเนื้อหาทั้งหมดด้วย Material และ InkWell เพื่อให้มี effect เมื่อแตะ
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _toggleComments, // เรียกใช้ฟังก์ชันเมื่อแตะที่โพสต์
+        splashColor: widget.themeColor.withOpacity(0.05),
+        highlightColor: widget.themeColor.withOpacity(0.02),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Colors.grey[200],
-              child: Icon(Icons.person, color: Colors.grey[700]),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$creatorName',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  'Team Member',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            // Post author info row - Show the creator
+            FutureBuilder<String?>(
+              future: _userService.findNameById(creatorId),
+              builder: (context, snapshot) {
+                final String creatorName = snapshot.data ?? 'Unknown User';
 
-        // Post title
-        if (title.isNotEmpty) ...[
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // Post description with Read More functionality
-        if (description.isNotEmpty) ...[
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AnimatedCrossFade(
-                firstChild: Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey[700],
-                    height: 1.5,
-                    letterSpacing: 0.2,
-                  ),
-                  maxLines: _maxLines,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                secondChild: Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey[700],
-                    height: 1.5,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                crossFadeState:
-                    _isExpanded
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 300),
-              ),
-              if (hasTextOverflow) ...[
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isExpanded = !_isExpanded;
-                    });
-                  },
-                  child: Row(
-                    children: [
+                return Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.grey[200],
+                      child: Icon(Icons.person, color: Colors.grey[700]),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          creatorName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[800],
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          'Team Member',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    // Add created time if available
+                    if (widget.data['createdAt'] != null)
                       Text(
-                        _isExpanded ? 'Show Less' : 'Read More',
-                        style: TextStyle(
-                          color: widget.themeColor,
-                          fontWeight: FontWeight.w600,
+                        _formatTimestamp(widget.data['createdAt']),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Post title
+            if (title.isNotEmpty) ...[
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                  height: 1.3,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Post description with Read More functionality
+            if (description.isNotEmpty) ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AnimatedCrossFade(
+                    firstChild: Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: _maxLines,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    secondChild: Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey[700],
+                        height: 1.5,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    crossFadeState:
+                        _isExpanded
+                            ? CrossFadeState.showSecond
+                            : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
+                  ),
+                  if (hasTextOverflow) ...[
+                    const SizedBox(height: 8),
+                    // ใช้ Material + InkWell เพื่อกันการแตะจาก parent
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          // เปลี่ยนสถานะการขยายข้อความ
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _isExpanded ? 'Show Less' : 'Read More',
+                              style: TextStyle(
+                                color: widget.themeColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 16,
+                              color: widget.themeColor,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        size: 16,
-                        color: widget.themeColor,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Interaction bar with OK button and comment toggle
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Colors.grey[200]!, width: 1),
                 ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
-
-        // Interaction bar with animated effects
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.grey[200]!, width: 1)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildInteractionButton(
-                icon: Icons.emoji_emotions_outlined,
-                label: 'OK',
-                color: Colors.grey[700]!,
-                onTap: () {},
               ),
-              _buildInteractionButton(
-                icon: Icons.comment_outlined,
-                label: 'Comment',
-                color: Colors.grey[700]!,
-                onTap: () {
-                  // Make sure description is fully expanded when commenting
-                  if (!_isExpanded && hasTextOverflow) {
-                    setState(() {
-                      _isExpanded = true;
-                    });
-                  }
-                  // Comment functionality would go here
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // OK reaction button
+                  if (postId.isNotEmpty)
+                    Material(
+                      color: Colors.transparent,
+                      child: OkReactionButton(
+                        contentId: postId,
+                        contentType: 'post',
+                        themeColor: widget.themeColor,
+                      ),
+                    ),
 
-  Widget _buildInteractionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      splashColor: color.withOpacity(0.1),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: color,
-                fontWeight: FontWeight.w500,
+                  // Comment button
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _toggleComments,
+                      borderRadius: BorderRadius.circular(8),
+                      splashColor: widget.themeColor.withOpacity(0.1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.comment_outlined,
+                              size: 18,
+                              color: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Comment',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
+
+            // Comments section
+            if (_showComments && postId.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Divider(color: Colors.grey[200]),
+              const SizedBox(height: 8),
+              // ห่อ CommentWidget ด้วย Material เพื่อให้การแตะที่นี่ไม่ส่งผลต่อ parent
+              Material(
+                color: Colors.transparent,
+                child: CommentWidget(
+                  contentId: postId,
+                  contentType: 'post',
+                  themeColor: widget.themeColor,
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  int min(int a, int b) => a < b ? a : b;
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return '';
+
+    DateTime dateTime;
+    if (timestamp is Timestamp) {
+      dateTime = timestamp.toDate();
+    } else {
+      return '';
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} min ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else {
+      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    }
+  }
 }
