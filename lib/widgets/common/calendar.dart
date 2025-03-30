@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:teammate/services/firestore_task_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 
 class Calendar extends StatefulWidget {
@@ -9,6 +10,7 @@ class Calendar extends StatefulWidget {
 }
 
 class _CalendarState extends State<Calendar> {
+  FirestoreTaskService _taskService = FirestoreTaskService();
   int currentYear = DateTime.now().year;
   late List<Map<String, dynamic>> monthsWithDays;
 
@@ -45,7 +47,7 @@ class _CalendarState extends State<Calendar> {
         ).format(date).toUpperCase().substring(0, 3);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 6),
           child: cardDate(day, dayName, isToday, isPast, isYesterday),
         );
       }),
@@ -70,8 +72,10 @@ class _CalendarState extends State<Calendar> {
     }
 
     Color dayNameColor =
-        isToday ? const Color.fromARGB(255, 255, 255, 255) : AppColors.secondary;
-    Color dayNumberColor = isToday ? Colors.white : Colors.black87;
+        isToday
+            ? const Color.fromARGB(255, 255, 255, 255)
+            : AppColors.secondary;
+    Color dayNumberColor = isToday ? Colors.white : AppColors.labelText;
 
     // Add border for white cards to make them visible
     BoxBorder? border =
@@ -80,6 +84,7 @@ class _CalendarState extends State<Calendar> {
             : null;
 
     return Card(
+      shadowColor: Colors.transparent,
       color: cardColor,
       elevation: isToday ? 4 : 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -91,6 +96,7 @@ class _CalendarState extends State<Calendar> {
           borderRadius: BorderRadius.circular(16),
           border: border,
         ),
+
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -102,18 +108,20 @@ class _CalendarState extends State<Calendar> {
                 fontSize: 18,
               ),
             ),
-            const SizedBox(height: 20),
-            Text(
-              day.toString(),
-              style: TextStyle(
-                color: dayNumberColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+              child: Text(
+                day.toString(),
+                style: TextStyle(
+                  color: dayNumberColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                ),
               ),
             ),
             if (isToday)
               Container(
-                margin: const EdgeInsets.only(top: 4),
                 width: 5,
                 height: 5,
                 decoration: const BoxDecoration(

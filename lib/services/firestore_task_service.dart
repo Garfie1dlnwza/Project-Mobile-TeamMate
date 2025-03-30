@@ -55,6 +55,57 @@ class FirestoreTaskService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getTasksByDateAndDepartments({
+    required List<String> departmentIds,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    List<Map<String, dynamic>> results = [];
+
+    try {
+      for (String deptId in departmentIds) {
+        // ทดลองดึงงานเฉพาะตาม departmentId ก่อน
+        QuerySnapshot snapshot =
+            await _firestore
+                .collection('tasks')
+                .where('departmentId', isEqualTo: deptId)
+                .get();
+
+        // ตรวจสอบจำนวนงานที่พบ
+        print('พบงานทั้งหมด ${snapshot.docs.length} รายการ สำหรับแผนก $deptId');
+
+        // กรองด้วย endTask ตามช่วงเวลาที่ต้องการในโค้ด
+        for (var doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final Timestamp taskEndTime = data['endTask'] as Timestamp;
+
+          // ตรวจสอบว่าอยู่ในช่วงเวลาที่ต้องการหรือไม่
+          if (taskEndTime.toDate().isAfter(startDate) &&
+              taskEndTime.toDate().isBefore(
+                endDate.add(Duration(seconds: 1)),
+              )) {
+            results.add({
+              'id': doc.id,
+              'taskTitle': data['taskTitle'] ?? 'Untitled Task',
+              'taskDescription': data['taskDescription'] ?? '',
+              'startTask': data['startTask'] as Timestamp,
+              'endTask': data['endTask'] as Timestamp,
+              'isSubmit': data['isSubmit'] ?? false,
+              'isApproved': data['isApproved'] ?? false,
+              'isRejected': data['isRejected'] ?? false,
+              'departmentId': data['departmentId'] ?? '',
+            });
+          }
+        }
+      }
+
+      return results;
+    } catch (e) {
+      print('Error getTasksByDateAndDepartments: $e');
+      return [];
+    }
+  }
+
   // Add a comment to a task
   Future<void> addCommentToTask({
     required String taskId,
@@ -82,9 +133,7 @@ class FirestoreTaskService {
 
       // Add comment to subcollection
       await commentsRef.add(commentData);
-    } catch (e)
-    
-     {
+    } catch (e) {
       print('Error adding comment: $e');
     }
   }

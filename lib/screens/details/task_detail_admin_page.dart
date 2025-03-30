@@ -111,7 +111,8 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
               .limit(1)
               .get();
 
-      if (existingSubmissions.docs.isNotEmpty && !(widget.data['isRejected'] ?? false)) {
+      if (existingSubmissions.docs.isNotEmpty &&
+          !(widget.data['isRejected'] ?? false)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('This task already submitted.'),
@@ -190,8 +191,8 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
       // Update main task document
       await FirebaseFirestore.instance.collection('tasks').doc(taskId).update({
         'isApproved': action == 'accepted',
-        'isRejected': action == 'rejected', // Add this line to track rejection
-        'isSubmit': action == 'accepted' ? true : false, // Only keep as submitted if accepted
+        'isRejected': action == 'rejected',
+        'isSubmit': action == 'accepted', // Only keep as submitted if accepted
         'reviewedAt': Timestamp.now(),
         'reviewedBy': FirebaseAuth.instance.currentUser?.uid,
       });
@@ -229,15 +230,17 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
     final bool isRejected = widget.data['isRejected'] ?? false;
     final Timestamp endDate = widget.data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
-    final bool isOverdue = DateTime.now().isAfter(dueDate) && !isApproved;
+    final bool isOverdue =
+        DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
     final Duration timeLeft = dueDate.difference(DateTime.now());
-    final bool isUrgent = timeLeft.inDays <= 2 && !isApproved;
+    final bool isUrgent =
+        timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Task Details'), elevation: 0),
+      appBar: AppBar(title: const Text('Task Details'), elevation: 0),
       body:
           isLoading
-              ? Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -255,6 +258,7 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
                             color: _getStatusColor(
                               isApproved,
                               isSubmitted,
+                              isRejected,
                               isOverdue,
                               isUrgent,
                             ),
@@ -264,6 +268,7 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
                             _getStatusText(
                               isApproved,
                               isSubmitted,
+                              isRejected,
                               isOverdue,
                               isUrgent,
                             ),
@@ -408,7 +413,7 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
                             ],
                             const SizedBox(height: 8),
                             Text(
-                              'Submitted on: ${submissionData != null && submissionData!['submittedAt'] is Timestamp ? DateFormatter.formatDateTime((submissionData!['submittedAt'] as Timestamp).toDate()) : 'Unknown date'}',
+                              'Submitted on: ${submissionData != null && submissionData!.containsKey('submittedAt') && submissionData!['submittedAt'] is Timestamp ? DateFormatter.formatDateTime((submissionData!['submittedAt'] as Timestamp).toDate()) : 'Unknown date'}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
@@ -581,11 +586,12 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
   Color _getStatusColor(
     bool isApproved,
     bool isSubmitted,
+    bool isRejected,
     bool isOverdue,
     bool isUrgent,
   ) {
     if (isApproved) return Colors.green[600]!;
-    if (widget.data['isRejected'] ?? false) return Colors.red[600]!;
+    if (isRejected) return Colors.red[600]!;
     if (isSubmitted) return Colors.blue[600]!;
     if (isOverdue) return Colors.red[600]!;
     if (isUrgent) return Colors.orange[600]!;
@@ -595,11 +601,12 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
   String _getStatusText(
     bool isApproved,
     bool isSubmitted,
+    bool isRejected,
     bool isOverdue,
     bool isUrgent,
   ) {
     if (isApproved) return 'APPROVED';
-    if (widget.data['isRejected'] ?? false) return 'REJECTED';
+    if (isRejected) return 'REJECTED';
     if (isSubmitted) return 'SUBMITTED';
     if (isOverdue) return 'OVERDUE';
     if (isUrgent) return 'URGENT';

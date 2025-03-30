@@ -12,6 +12,39 @@ class FirestoreDepartmentService {
     throw Exception('Department not found');
   }
 
+  Future<List<String>> getDepartmentIdsByUid(String uid) async {
+    List<String> departmentIds = [];
+
+    try {
+      // Query departments where user is in the users array
+      final userDepartments =
+          await _departmentsCollection.where('users', arrayContains: uid).get();
+
+      // Add these department IDs to our result list
+      for (var doc in userDepartments.docs) {
+        departmentIds.add(doc.id);
+      }
+
+      // Query departments where user is in the admins array
+      final adminDepartments =
+          await _departmentsCollection
+              .where('admins', arrayContains: uid)
+              .get();
+
+      // Add these department IDs to our result list, avoiding duplicates
+      for (var doc in adminDepartments.docs) {
+        if (!departmentIds.contains(doc.id)) {
+          departmentIds.add(doc.id);
+        }
+      }
+
+      return departmentIds;
+    } catch (e) {
+      print("Error getting departments for user: $e");
+      rethrow;
+    }
+  }
+
   // สร้าง department ใหม่ใน Firestore
   Future<String> createDepartment(Map<String, dynamic> departmentData) async {
     DocumentReference docRef = await _departmentsCollection.add(departmentData);

@@ -205,18 +205,30 @@ class TaskContent extends StatelessWidget {
     );
   }
 
-  Color _getPriorityColor(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (data['isApproved'] ?? false) return Colors.green[600]!;
-    if (data['isRejected'] ?? false) return Colors.red[400]!;
+  Color _getPriorityColor(
+    bool isApproved,
+    bool isRejected,
+    bool isSubmitted,
+    bool isOverdue,
+    bool isUrgent,
+  ) {
+    if (isApproved) return Colors.green[600]!;
+    if (isRejected) return Colors.red[400]!;
     if (isSubmitted) return Colors.blue[600]!;
     if (isOverdue) return Colors.red[600]!;
     if (isUrgent) return Colors.orange[600]!;
     return Colors.grey[700]!;
   }
 
-  String _getPriorityText(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (data['isApproved'] ?? false) return 'APPROVED';
-    if (data['isRejected'] ?? false) return 'REJECTED';
+  String _getPriorityText(
+    bool isApproved,
+    bool isRejected,
+    bool isSubmitted,
+    bool isOverdue,
+    bool isUrgent,
+  ) {
+    if (isApproved) return 'APPROVED';
+    if (isRejected) return 'REJECTED';
     if (isSubmitted) return 'SUBMITTED';
     if (isOverdue) return 'OVERDUE';
     if (isUrgent) return 'URGENT';

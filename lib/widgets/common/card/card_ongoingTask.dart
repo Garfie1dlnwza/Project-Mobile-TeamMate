@@ -6,6 +6,8 @@ import 'package:teammate/screens/details/task_detail_admin_page.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_task_service.dart';
+import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/utils/date.dart';
 
 enum TaskFilter { all, ongoing, completed, overdue, urgent }
@@ -21,6 +23,9 @@ class CardOngoingTasks extends StatefulWidget {
 
 class _CardOngoingTasksState extends State<CardOngoingTasks> {
   final FirestoreTaskService _taskService = FirestoreTaskService();
+  final FirestoreDepartmentService _departmentService =
+      FirestoreDepartmentService();
+  final FirestoreProjectService _projectService = FirestoreProjectService();
 
   // Colors
   final Color themeColor = Colors.grey[800]!;
@@ -262,6 +267,77 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
         ),
       ),
     );
+  }
+
+  Future<void> _checkUserRoleAndNavigate(
+    BuildContext context,
+    Map<String, dynamic> task,
+  ) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        // Handle not logged in case
+        _navigateToDetailPage(context, task, false);
+        return;
+      }
+
+      final userId = currentUser.uid;
+      final departmentId = task['departmentId'];
+
+      // Get department data to find projectId
+      final departmentDoc =
+          await FirebaseFirestore.instance
+              .collection('departments')
+              .doc(departmentId)
+              .get();
+
+      if (!departmentDoc.exists) {
+        _navigateToDetailPage(context, task, false);
+        return;
+      }
+
+      final departmentData = departmentDoc.data() as Map<String, dynamic>;
+      final projectId = departmentData['projectId'];
+
+      // Check if user is project head
+      bool isHead = await _projectService.isUserHeadOfProject(
+        projectId,
+        userId,
+      );
+
+      // Check if user is department admin
+      bool isAdmin = await _departmentService.isUserAdminOfDepartment(
+        departmentId,
+        userId,
+      );
+
+      bool isAdminOrHead = isHead || isAdmin;
+
+      // Navigate to the detail page with role information
+      _navigateToDetailPage(context, task, isAdminOrHead);
+    } catch (e) {
+      debugPrint('Error checking user role: $e');
+      // Default to regular view if there's an error
+      _navigateToDetailPage(context, task, false);
+    }
+  }
+
+  void _navigateToDetailPage(
+    BuildContext context,
+    Map<String, dynamic> task,
+    bool isAdminOrHead,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => TaskDetailsAdminPage(
+              data: task,
+              themeColor: themeColor,
+              isAdminOrHead: isAdminOrHead,
+            ),
+      ),
+    ).then((_) => _loadAllTasks());
   }
 
   @override
