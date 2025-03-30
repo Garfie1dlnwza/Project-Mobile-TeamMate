@@ -122,8 +122,7 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) =>
-                                TakePictureScreen(cameras: cameras),
+                            (context) => TakePictureScreen(cameras: cameras),
                       ),
                     );
 

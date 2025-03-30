@@ -50,6 +50,8 @@ class TaskContent extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: _getPriorityColor(
+                        isApproved,
+                        isRejected,
                         isSubmitted,
                         isOverdue,
                         isUrgent,
@@ -57,7 +59,7 @@ class TaskContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _getPriorityText(isSubmitted, isOverdue, isUrgent),
+                      _getPriorityText(isApproved, isRejected, isSubmitted, isOverdue, isUrgent),
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
