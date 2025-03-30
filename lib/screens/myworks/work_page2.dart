@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:teammate/widgets/common/card/card_ongoingTask.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addAdmin.dart';
 import 'package:teammate/widgets/common/card/card_departments.dart';
-// New import
+
 
 class WorkPageTwo extends StatefulWidget {
   final String title;
@@ -42,6 +43,7 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
         padding: const EdgeInsets.fromLTRB(20, 40, 0, 0),
         child: Column(
           children: [
+            // Departments Section
             Row(
               children: [
                 Container(
@@ -66,6 +68,8 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
             const SizedBox(height: 20),
             CardDepartments(data: widget.data),
             const SizedBox(height: 20),
+
+            // Ongoing Tasks Section
             Row(
               children: [
                 Container(
@@ -87,7 +91,9 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
                 ),
               ],
             ),
-            // CardOngoingTasks(data: widget.data),
+            const SizedBox(height: 10),
+            // Added the CardOngoingTasks widget
+            CardOngoingTasks(data: widget.data),
           ],
         ),
       ),

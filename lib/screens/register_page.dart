@@ -67,7 +67,7 @@ class _RegisterPageState extends State<RegisterPage> {
           user.uid,
           fullName,
           user.email ?? _emailController.text.trim(),
-          phoneNumber:  _phoneNumberController.text.trim(),
+          phoneNumber: _phoneNumberController.text.trim(),
           projectIds: [],
           notiId: notiId,
         );

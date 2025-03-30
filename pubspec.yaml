@@ -33,11 +33,11 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  
+
   cupertino_icons: ^1.0.8
   firebase_core: ^3.10.0   
   firebase_auth: ^5.4.0
-  google_sign_in: ^6.2.2
+  google_sign_in: ^6.3.0
   cloud_firestore: ^5.6.5
   shared_preferences: ^2.5.2
   supabase_flutter: ^2.0.0
@@ -57,6 +57,8 @@ dependencies:
   googleapis_auth: ^1.4.1
   http: ^1.1.0
   url_launcher: ^6.1.14
+  extension_google_sign_in_as_googleapis_auth: ^2.0.9
+  firebase_dynamic_links: ^6.1.4
   
 
 dev_dependencies:
@@ -93,6 +95,7 @@ flutter:
     - assets/images/plus_icon.png
     - assets/images/splash.png
     - assets/images/background.png
+    - assets/images/google.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

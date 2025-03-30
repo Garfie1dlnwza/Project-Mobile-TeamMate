@@ -36,7 +36,7 @@ class AllMembersTab extends StatelessWidget {
     return Column(
       children: [
         Expanded(child: _buildMembersContent(context)),
-        // Add people button at the bottom of the tab
+     
         if (showAddButton && onAddButtonPressed != null)
           Container(
             width: double.infinity,
