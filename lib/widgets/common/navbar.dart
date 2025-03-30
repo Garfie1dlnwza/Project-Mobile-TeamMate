@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/screens/home.dart';
+import 'package:teammate/screens/home/home.dart';
 import 'package:teammate/screens/myworks/work_page.dart';
-import 'package:teammate/screens/calendar_page.dart';
-import 'package:teammate/screens/settings_page.dart';
+import 'package:teammate/screens/calendar/calendar_page.dart';
+import 'package:teammate/screens/settings/settings_page.dart';
 
 class Navbar extends StatefulWidget {
   const Navbar({super.key});
