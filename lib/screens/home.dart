@@ -76,19 +76,17 @@ class _HomePageState extends State<HomePage> {
     }
 
     // Navigate to the appropriate page based on role
-    if (isAdminOrHead) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => TaskDetailsAdminPage(
-                data: task,
-                themeColor: Colors.grey[800]!,
-                isAdminOrHead: isAdminOrHead,
-              ),
-        ),
-      ).then((_) => _loadTasks());
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => TaskDetailsAdminPage(
+              data: task,
+              themeColor: Colors.grey[800]!,
+              isAdminOrHead: isAdminOrHead,
+            ),
+      ),
+    ).then((_) => _loadTasks());
   }
 
   @override
@@ -161,6 +159,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _onDateSelected(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+    });
+    _loadTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,9 +174,15 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Calendar
+       
           const SizedBox(height: 20),
-          SizedBox(height: 100, child: Calendar()),
+          SizedBox(
+            height: 100,
+            child: Calendar(
+              onDateSelect: _onDateSelected,
+              selectedDate: _selectedDate,
+            ),
+          ),
 
           // Tasks section
           Expanded(child: _buildTasksSection()),
@@ -252,6 +263,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildEmptyState() {
+    // ปรับปรุงข้อความให้เหมาะสมกับวันที่ผู้ใช้เลือก
+    String message = "";
+    String submessage = "";
+
+    if (_selectedDate.year == DateTime.now().year &&
+        _selectedDate.month == DateTime.now().month &&
+        _selectedDate.day == DateTime.now().day) {
+      message = "No tasks for today";
+      submessage = "Enjoy your free time!";
+    } else if (_selectedDate.isBefore(DateTime.now())) {
+      message = "No tasks on this day";
+      submessage = "This day has already passed";
+    } else {
+      message = "No tasks scheduled";
+      submessage =
+          "You have no tasks for ${DateFormat('EEEE, MMMM d').format(_selectedDate)}";
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -259,7 +288,7 @@ class _HomePageState extends State<HomePage> {
           Icon(Icons.event_available, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            "No tasks for today",
+            message,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
@@ -268,7 +297,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            "Enjoy your free time!",
+            submessage,
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
