@@ -4,7 +4,6 @@ import 'package:teammate/screens/myworks/work_page.dart';
 import 'package:teammate/screens/calendar_page.dart';
 import 'package:teammate/screens/settings_page.dart';
 
-
 class Navbar extends StatefulWidget {
   const Navbar({super.key});
 
@@ -35,6 +34,7 @@ class _NavbarState extends State<Navbar> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(30, 20, 30, 30),
         child: Container(
+          
           decoration: BoxDecoration(
             color:
                 Theme.of(context).brightness == Brightness.dark

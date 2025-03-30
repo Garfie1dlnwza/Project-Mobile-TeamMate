@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:teammate/screens/details/detail_task.dart';
+
+import 'package:teammate/screens/details/task_detail_page.dart';
 import 'package:teammate/services/firestore_task_service.dart';
 import 'package:teammate/utils/date.dart';
 
@@ -17,7 +18,17 @@ class CardOngoingTasks extends StatefulWidget {
 
 class _CardOngoingTasksState extends State<CardOngoingTasks> {
   final FirestoreTaskService _taskService = FirestoreTaskService();
+
+  // Colors
   final Color themeColor = Colors.grey[800]!;
+  final Map<TaskFilter, Color> filterColors = {
+    TaskFilter.all: Colors.grey[700]!,
+    TaskFilter.ongoing: Colors.blue[700]!,
+    TaskFilter.completed: Colors.green[700]!,
+    TaskFilter.overdue: Colors.red[700]!,
+    TaskFilter.urgent: Colors.orange[700]!,
+  };
+
   final Map<String, String> _departmentNames = {};
 
   bool _isLoading = true;
@@ -36,18 +47,17 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
   Future<void> _loadDepartmentNames() async {
     try {
       // Get departmentIds from the data
-      // print(widget.data);
       List<String> departmentIds = [];
       if (widget.data.containsKey('departments') &&
           widget.data['departments'] is List) {
         departmentIds = List<String>.from(widget.data['departments']);
       }
-      // print('departmentId :$departmentIds');
+
       // If no departments, try to use the current department
       if (departmentIds.isEmpty && widget.data.containsKey('id')) {
         departmentIds.add(widget.data['id']);
       }
-      
+
       // Load department names
       for (String departmentId in departmentIds) {
         FirebaseFirestore.instance
@@ -191,99 +201,106 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
   }
 
   Widget _buildFilterChips() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+    return SizedBox(
+      height: 36,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          _buildFilterChip(TaskFilter.all, 'All', Icons.view_list),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            TaskFilter.ongoing,
-            'Ongoing',
-            Icons.pending_actions,
-          ),
-          const SizedBox(width: 8),
-          _buildFilterChip(
-            TaskFilter.completed,
-            'Completed',
-            Icons.check_circle_outline,
-          ),
-          const SizedBox(width: 8),
-          _buildFilterChip(TaskFilter.urgent, 'Urgent', Icons.priority_high),
-          const SizedBox(width: 8),
-          _buildFilterChip(TaskFilter.overdue, 'Overdue', Icons.watch_later),
+          _buildFilterChip(TaskFilter.all, 'All'),
+          const SizedBox(width: 10),
+          _buildFilterChip(TaskFilter.ongoing, 'Ongoing'),
+          const SizedBox(width: 10),
+          _buildFilterChip(TaskFilter.completed, 'Completed'),
+          const SizedBox(width: 10),
+          _buildFilterChip(TaskFilter.urgent, 'Urgent'),
+          const SizedBox(width: 10),
+          _buildFilterChip(TaskFilter.overdue, 'Overdue'),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(TaskFilter filter, String label, IconData icon) {
+  Widget _buildFilterChip(TaskFilter filter, String label) {
     final bool isSelected = _currentFilter == filter;
+    final Color filterColor = filterColors[filter] ?? Colors.grey[700]!;
 
-    return FilterChip(
-      selected: isSelected,
-      showCheckmark: false,
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : Colors.grey[700],
+    return GestureDetector(
+      onTap: () => _applyFilter(filter),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? filterColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? filterColor : Colors.grey[300]!,
+            width: 1.5,
           ),
-          const SizedBox(width: 6),
-          Text(label),
-        ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? filterColor : Colors.grey[600],
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
       ),
-      backgroundColor: Colors.grey[200],
-      selectedColor: themeColor,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey[800],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      onSelected: (selected) {
-        if (selected) {
-          _applyFilter(filter);
-        }
-      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(20.0),
-          child: CircularProgressIndicator(),
+      return Expanded(
+        child: Center(
+          child: SizedBox(
+            width: 30,
+            height: 30,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(themeColor),
+            ),
+          ),
         ),
       );
     }
 
     if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Text(
-            'Error: $_errorMessage',
-            style: TextStyle(color: Colors.red[700]),
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, color: Colors.red[400], size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Error: $_errorMessage',
+                style: TextStyle(color: Colors.red[400]),
+              ),
+            ],
           ),
         ),
       );
     }
 
     if (_allTasks.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Text(
-            'No tasks found',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-            ),
+      return Expanded(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.task_outlined, color: Colors.grey[400], size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'No tasks found',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -291,21 +308,32 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
 
     return Expanded(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Filter chips
           _buildFilterChips(),
 
           // Task count
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Row(
               children: [
-                Text(
-                  '${_filteredTasks.length} ${_currentFilter.name} task${_filteredTasks.length != 1 ? 's' : ''}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontStyle: FontStyle.italic,
-                    fontSize: 14,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: filterColors[_currentFilter]!.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_filteredTasks.length} tasks',
+                    style: TextStyle(
+                      color: filterColors[_currentFilter],
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -317,12 +345,24 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
             child:
                 _filteredTasks.isEmpty
                     ? Center(
-                      child: Text(
-                        'No ${_currentFilter.name} tasks found',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontStyle: FontStyle.italic,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getEmptyStateIcon(),
+                            color: Colors.grey[400],
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No ${_currentFilter.name} tasks found',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     )
                     : ListView.builder(
@@ -339,6 +379,19 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
     );
   }
 
+  IconData _getEmptyStateIcon() {
+    switch (_currentFilter) {
+      case TaskFilter.completed:
+        return Icons.check_circle_outline;
+      case TaskFilter.overdue:
+        return Icons.watch_later_outlined;
+      case TaskFilter.urgent:
+        return Icons.priority_high_outlined;
+      default:
+        return Icons.task_outlined;
+    }
+  }
+
   Widget _buildTaskCard(BuildContext context, Map<String, dynamic> data) {
     final String title = data['taskTitle'] ?? 'Untitled Task';
     final bool isSubmitted = data['isSubmit'] ?? false;
@@ -350,226 +403,226 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
 
     // Get department name
     final String departmentId = data['departmentId'] ?? '';
-    final String departmentName =
-        _departmentNames[departmentId] ?? 'Unknown Department';
+    final String departmentName = _departmentNames[departmentId] ?? '';
 
-    return Card(
-      elevation: 1.5,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder:
-                  (context) =>
-                      TaskDetailsPage(data: data, themeColor: themeColor),
-            ),
-          ).then((_) {
-            // Refresh tasks when returning from details page
-            _loadAllTasks();
-          });
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Status and due date
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getPriorityColor(
-                        isSubmitted,
-                        isOverdue,
-                        isUrgent,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _getPriorityText(isSubmitted, isOverdue, isUrgent),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.calendar_today,
-                    size: 14,
-                    color:
-                        isOverdue
-                            ? Colors.red[400]
-                            : isSubmitted
-                            ? Colors.green[600]
-                            : Colors.grey[600],
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    DateFormatter.formatDateShort(dueDate),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color:
-                          isOverdue
-                              ? Colors.red[400]
-                              : isSubmitted
-                              ? Colors.green[600]
-                              : Colors.grey[600],
-                    ),
-                  ),
-                ],
+    // Determine status and colors
+    String statusText;
+    Color statusColor;
+
+    if (isSubmitted) {
+      statusText = 'Completed';
+      statusColor = Colors.green[700]!;
+    } else if (isOverdue) {
+      statusText = 'Overdue';
+      statusColor = Colors.red[700]!;
+    } else if (isUrgent) {
+      statusText = 'Urgent';
+      statusColor = Colors.orange[700]!;
+    } else {
+      statusText = 'Ongoing';
+      statusColor = Colors.blue[700]!;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color.fromARGB(255, 40, 40, 40).withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) =>
+                        TaskDetailsPage(data: data, themeColor: themeColor),
               ),
-
-              const SizedBox(height: 10),
-
-              // Department tag
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+            ).then((_) => _loadAllTasks());
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row with status and due date
+                Row(
                   children: [
-                    Icon(Icons.business, size: 12, color: Colors.grey[700]),
-                    const SizedBox(width: 4),
-                    Text(
-                      departmentName,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    // Status indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    // Due date
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          size: 14,
+                          color: isOverdue ? Colors.red[400] : Colors.grey[500],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          DateFormatter.formatDateShort(dueDate),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color:
+                                isOverdue ? Colors.red[400] : Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-              // Task title
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                  decoration: isSubmitted ? TextDecoration.lineThrough : null,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-
-              // Description preview if available
-              if (data['taskDescription'] != null &&
-                  data['taskDescription'].toString().isNotEmpty) ...[
-                const SizedBox(height: 8),
+                // Task title
                 Text(
-                  data['taskDescription'],
+                  title,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[850],
                     decoration: isSubmitted ? TextDecoration.lineThrough : null,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ],
 
-              const SizedBox(height: 10),
-
-              // Progress indicator (only for non-completed tasks)
-              if (!isSubmitted) ...[
-                LinearProgressIndicator(
-                  value: _calculateProgress(data),
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    _getProgressColor(isSubmitted, isOverdue, isUrgent),
+                // Description if available
+                if (data['taskDescription'] != null &&
+                    data['taskDescription'].toString().isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    data['taskDescription'],
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      decoration:
+                          isSubmitted ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                ],
 
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
 
-                // Time remaining
+                // Bottom row with department and progress
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      _getTimeRemainingText(timeLeft, isOverdue),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                        color:
-                            isOverdue
-                                ? Colors.red[400]
-                                : isUrgent
-                                ? Colors.orange[700]
-                                : Colors.grey[600],
+                    // Department badge (only if department name exists)
+                    if (departmentName.isNotEmpty) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          departmentName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
+                      const SizedBox(width: 8),
+                    ],
+
+                    // Progress indicator or completion
+                    Expanded(
+                      child:
+                          isSubmitted
+                              ? Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 16,
+                                    color: Colors.green[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Completed',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.green[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              )
+                              : Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Progress bar
+                                  LinearProgressIndicator(
+                                    value: _calculateProgress(data),
+                                    backgroundColor: Colors.grey[200],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isOverdue
+                                          ? Colors.red[400]!
+                                          : isUrgent
+                                          ? Colors.orange[400]!
+                                          : Colors.blue[600]!,
+                                    ),
+                                    minHeight: 4,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+
+                                  const SizedBox(height: 4),
+
+                                  // Time remaining
+                                  Text(
+                                    _getTimeRemainingText(timeLeft, isOverdue),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color:
+                                          isOverdue
+                                              ? Colors.red[400]
+                                              : isUrgent
+                                              ? Colors.orange[600]
+                                              : Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
                     ),
                   ],
                 ),
-              ] else ...[
-                // Completed indicator
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(
-                      Icons.check_circle,
-                      size: 16,
-                      color: Colors.green[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Completed',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
               ],
-
-              // View details button
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => TaskDetailsPage(
-                              data: data,
-                              themeColor: themeColor,
-                            ),
-                      ),
-                    ).then((_) => _loadAllTasks());
-                  },
-                  icon: Icon(Icons.remove_red_eye, size: 16, color: themeColor),
-                  label: Text(
-                    'View Details',
-                    style: TextStyle(color: themeColor, fontSize: 12),
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -577,10 +630,12 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
   }
 
   double _calculateProgress(Map<String, dynamic> data) {
+    // If there's a direct progress value, use it
     if (data.containsKey('progress') && data['progress'] is num) {
       return (data['progress'] as num).toDouble() / 100;
     }
 
+    // Otherwise calculate based on time
     Timestamp startTask = data['startTask'] ?? Timestamp.now();
     Timestamp endTask = data['endTask'] ?? Timestamp.now();
 
@@ -598,44 +653,23 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
     return elapsedDuration / totalDuration;
   }
 
-  Color _getPriorityColor(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (isSubmitted) return Colors.green[600]!;
-    if (isOverdue) return Colors.red[600]!;
-    if (isUrgent) return Colors.orange[600]!;
-    return Colors.grey[700]!;
-  }
-
-  Color _getProgressColor(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (isSubmitted) return Colors.green[500]!;
-    if (isOverdue) return Colors.red[400]!;
-    if (isUrgent) return Colors.orange[400]!;
-    return Colors.blue[500]!;
-  }
-
-  String _getPriorityText(bool isSubmitted, bool isOverdue, bool isUrgent) {
-    if (isSubmitted) return 'COMPLETED';
-    if (isOverdue) return 'OVERDUE';
-    if (isUrgent) return 'URGENT';
-    return 'ONGOING';
-  }
-
   String _getTimeRemainingText(Duration timeLeft, bool isOverdue) {
     if (isOverdue) {
       Duration overdue = -timeLeft;
       if (overdue.inDays > 0) {
-        return 'Overdue by ${overdue.inDays} ${overdue.inDays == 1 ? 'day' : 'days'}';
+        return '${overdue.inDays}d overdue';
       } else if (overdue.inHours > 0) {
-        return 'Overdue by ${overdue.inHours} ${overdue.inHours == 1 ? 'hour' : 'hours'}';
+        return '${overdue.inHours}h overdue';
       } else {
-        return 'Overdue by ${overdue.inMinutes} ${overdue.inMinutes == 1 ? 'minute' : 'minutes'}';
+        return '${overdue.inMinutes}m overdue';
       }
     } else {
       if (timeLeft.inDays > 0) {
-        return '${timeLeft.inDays} ${timeLeft.inDays == 1 ? 'day' : 'days'} remaining';
+        return '${timeLeft.inDays}d remaining';
       } else if (timeLeft.inHours > 0) {
-        return '${timeLeft.inHours} ${timeLeft.inHours == 1 ? 'hour' : 'hours'} remaining';
+        return '${timeLeft.inHours}h remaining';
       } else {
-        return '${timeLeft.inMinutes} ${timeLeft.inMinutes == 1 ? 'minute' : 'minutes'} remaining';
+        return '${timeLeft.inMinutes}m remaining';
       }
     }
   }

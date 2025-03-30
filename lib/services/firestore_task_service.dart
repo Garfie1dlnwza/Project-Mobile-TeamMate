@@ -82,7 +82,9 @@ class FirestoreTaskService {
 
       // Add comment to subcollection
       await commentsRef.add(commentData);
-    } catch (e) {
+    } catch (e)
+    
+     {
       print('Error adding comment: $e');
     }
   }

@@ -15,13 +15,14 @@ class _CardDepartmentsState extends State<CardDepartments> {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
 
-  final List<Color> departmentColors = [
-    Colors.teal.shade200,
-    Colors.pink.shade200,
-    Colors.purple.shade200,
-    Colors.blueGrey.shade200,
-    Colors.amber.shade200,
-    Colors.indigo.shade200,
+  // Modern accent colors for departments
+  final List<Color> accentColors = [
+    const Color(0xFF6366F1), // Indigo
+    const Color(0xFFEC4899), // Pink
+    const Color(0xFF10B981), // Emerald
+    const Color(0xFF3B82F6), // Blue
+    const Color(0xFFF59E0B), // Amber
+    const Color(0xFF8B5CF6), // Purple
   ];
 
   List<String> departmentIds = [];
@@ -57,94 +58,225 @@ class _CardDepartmentsState extends State<CardDepartments> {
     String projectId,
     String departmentId,
     String departmentName,
-    Color color,
+    Color accentColor,
     int memberCount,
   ) {
-    return InkWell(
-      onTap:
-          () => Navigator.push(
+    return Container(
+      width: 220,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: const Color.fromARGB(255, 40, 40, 40).withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder:
-                  (context) => WorkPageThree(
-                    departmentId: departmentId,
-                    departmentName: departmentName,
-                    color: color,
-                    projectId: projectId,
-                  ),
+              builder: (context) => WorkPageThree(
+                departmentId: departmentId,
+                departmentName: departmentName,
+                color: accentColor,
+                projectId: projectId,
+              ),
             ),
           ),
-      child: Container(
-        height: 200,
-        width: 200,
-        margin: const EdgeInsets.only(right: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top row with icon and arrow
+                Row(
+                  children: [
+                    // Department icon with accent color
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.business_outlined,
+                        color: accentColor,
+                        size: 20,
+                      ),
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // Arrow indicator for navigation
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.grey.shade200,
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.grey[500],
+                        size: 12,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 18),
+                
+                // Department name
+                Text(
+                  departmentName,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[850],
+                    letterSpacing: 0.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                
+                const SizedBox(height: 6),
+                
+                // Department ID
+                Text(
+                  'ID: ${departmentId.substring(0, Math.min(8, departmentId.length))}${departmentId.length > 8 ? '...' : ''}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+                
+                const Spacer(),
+                
+                // Divider
+                Divider(color: Colors.grey.withOpacity(0.15)),
+                
+                const SizedBox(height: 12),
+                
+                // Member count
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.people_outline,
+                        color: accentColor,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      memberCount == 1 ? '1 Member' : '$memberCount Members',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color, color.withOpacity(0.8)],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingCard(int index) {
+    final Color accentColor = accentColors[index % accentColors.length];
+    
+    return Container(
+      width: 220,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(String error) {
+    return Container(
+      width: 220,
+      margin: const EdgeInsets.only(right: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.red.shade100,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.group_work_rounded,
-                    color: Colors.grey[800],
-                    size: 20,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.grey[800],
-                  size: 16,
-                ),
-              ],
+            Icon(
+              Icons.error_outline_rounded,
+              color: Colors.red[400],
+              size: 32,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
-              departmentName,
+              error,
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                color: Colors.red[400],
+                fontSize: 13,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                Icon(Icons.people, color: Colors.grey[800], size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  memberCount == 1 ? '1 Member' : '$memberCount Members',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[800],
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -153,28 +285,58 @@ class _CardDepartmentsState extends State<CardDepartments> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No departments found',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          if (_errorMessage != null) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                _errorMessage!,
-                style: const TextStyle(color: Colors.red, fontSize: 14),
-                textAlign: TextAlign.center,
+        ],
+        border: Border.all(
+          color: Colors.grey.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      margin: const EdgeInsets.only(right: 20),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.business_outlined,
+              size: 42, 
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No departments found',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
               ),
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _errorMessage!,
+                  style: TextStyle(
+                    color: Colors.red[400],
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -182,7 +344,17 @@ class _CardDepartmentsState extends State<CardDepartments> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return SizedBox(
+        height: 200,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: 3, // Show 3 loading indicators
+          padding: const EdgeInsets.only(right: 16),
+          itemBuilder: (context, index) {
+            return _buildLoadingCard(index);
+          },
+        ),
+      );
     }
 
     if (departmentIds.isEmpty) {
@@ -197,72 +369,32 @@ class _CardDepartmentsState extends State<CardDepartments> {
         padding: const EdgeInsets.only(right: 16),
         itemBuilder: (context, index) {
           final String departmentId = departmentIds[index];
-          final Color color = departmentColors[index % departmentColors.length];
+          final Color accentColor = accentColors[index % accentColors.length];
 
           return FutureBuilder<DocumentSnapshot>(
             future: _departmentService.getDepartmentById(departmentId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(child: CircularProgressIndicator()),
-                );
+                return _buildLoadingCard(index);
               }
 
               if (snapshot.hasError) {
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Error: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                );
+                return _buildErrorCard('Error: ${snapshot.error}');
               }
 
               if (!snapshot.hasData || !snapshot.data!.exists) {
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(child: Text('Department not found')),
-                );
+                return _buildErrorCard('Department not found');
               }
 
               final departmentData =
                   snapshot.data!.data() as Map<String, dynamic>?;
 
               if (departmentData == null) {
-                return Container(
-                  width: 200,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(child: Text('No department data')),
-                );
+                return _buildErrorCard('No department data');
               }
 
               final String departmentName =
-                  departmentData['name'] ?? 'Unnamed Department';
+                  departmentData['departmentName'] ?? departmentData['name'] ?? 'Unnamed Department';
               String projectId = '';
 
               // Find projectId from the department document
@@ -276,13 +408,17 @@ class _CardDepartmentsState extends State<CardDepartments> {
 
               // Get member count
               final List<dynamic> users = departmentData['users'] ?? [];
-              final int memberCount = users.length;
+              final List<dynamic> admins = departmentData['admins'] ?? [];
+
+              // Count total members (users + admins) without duplicates
+              final Set<dynamic> uniqueMembers = {...users, ...admins};
+              final int memberCount = uniqueMembers.length;
 
               return _buildDepartmentCard(
                 projectId,
                 departmentId,
                 departmentName,
-                color,
+                accentColor,
                 memberCount,
               );
             },
@@ -291,4 +427,9 @@ class _CardDepartmentsState extends State<CardDepartments> {
       ),
     );
   }
+}
+
+// Simple Math utility to avoid importing dart:math for just one function
+class Math {
+  static int min(int a, int b) => a < b ? a : b;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/screens/creates/create_document_page.dart';
 import 'package:teammate/screens/creates/create_poll_page.dart';
 import 'package:teammate/screens/creates/create_task_page.dart';
@@ -30,6 +31,10 @@ class _ListWorkPageState extends State<ListWorkPage> {
   String? _errorMessage;
   WorkType _selectedType = WorkType.all;
 
+  // User role check
+  bool _isHeadOrAdmin = false;
+  bool _checkingRole = true;
+
   // Lists for each type of work
   List<Map<String, dynamic>> _taskList = [];
   List<Map<String, dynamic>> _pollList = [];
@@ -44,6 +49,99 @@ class _ListWorkPageState extends State<ListWorkPage> {
   void initState() {
     super.initState();
     _loadCombinedFeed();
+    _checkUserRole();
+  }
+
+  // Check if the current user is a department head or admin
+  Future<void> _checkUserRole() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        setState(() {
+          _isHeadOrAdmin = false;
+          _checkingRole = false;
+        });
+        return;
+      }
+
+      // First check if user is the head in the project document
+      final projectDoc =
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .doc(widget.projectId)
+              .get();
+
+      if (projectDoc.exists) {
+        final projectData = projectDoc.data();
+        if (projectData != null) {
+          // Check if user is the project head
+          if (projectData.containsKey('headId') &&
+              projectData['headId'] == currentUser.uid) {
+            setState(() {
+              _isHeadOrAdmin = true;
+              _checkingRole = false;
+            });
+            return;
+          }
+
+          // Check if user is in project admins array
+          if (projectData.containsKey('admins') &&
+              projectData['admins'] is List &&
+              (projectData['admins'] as List).contains(currentUser.uid)) {
+            setState(() {
+              _isHeadOrAdmin = true;
+              _checkingRole = false;
+            });
+            return;
+          }
+        }
+      }
+
+      // Then check if user is admin of this department
+      final departmentDoc =
+          await FirebaseFirestore.instance
+              .collection('departments')
+              .doc(widget.departmentId)
+              .get();
+
+      if (departmentDoc.exists) {
+        final departmentData = departmentDoc.data();
+        if (departmentData != null) {
+          // Check if user is in admins array
+          if (departmentData.containsKey('admins') &&
+              departmentData['admins'] is List &&
+              (departmentData['admins'] as List).contains(currentUser.uid)) {
+            setState(() {
+              _isHeadOrAdmin = true;
+              _checkingRole = false;
+            });
+            return;
+          }
+
+          // Check if user is the department head
+          if (departmentData.containsKey('departmentHead') &&
+              departmentData['departmentHead'] == currentUser.uid) {
+            setState(() {
+              _isHeadOrAdmin = true;
+              _checkingRole = false;
+            });
+            return;
+          }
+        }
+      }
+
+      // If we got here, user is not a head or admin
+      setState(() {
+        _isHeadOrAdmin = false;
+        _checkingRole = false;
+      });
+    } catch (e) {
+      debugPrint('Error checking user role: $e');
+      setState(() {
+        _isHeadOrAdmin = false;
+        _checkingRole = false;
+      });
+    }
   }
 
   void _showCreateBottomSheet() {
@@ -331,20 +429,26 @@ class _ListWorkPageState extends State<ListWorkPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Press the + button to create new work items',
+            _isHeadOrAdmin
+                ? 'Press the + button to create new work items'
+                : 'No work items have been created ',
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _showCreateBottomSheet,
-            icon: const Icon(Icons.add),
-            label: const Text('Create New'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: themeColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          if (_isHeadOrAdmin)
+            ElevatedButton.icon(
+              onPressed: _showCreateBottomSheet,
+              icon: const Icon(Icons.add),
+              label: const Text('Create New'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: themeColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -483,7 +587,7 @@ class _ListWorkPageState extends State<ListWorkPage> {
 
     return Scaffold(
       body:
-          _isLoading
+          _isLoading || _checkingRole
               ? const Center(child: CircularProgressIndicator())
               : _errorMessage != null
               ? Center(child: Text('Error: $_errorMessage'))
@@ -507,15 +611,18 @@ class _ListWorkPageState extends State<ListWorkPage> {
                   ),
                 ],
               ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.all(16),
-        child: FloatingActionButton(
-          onPressed: _showCreateBottomSheet,
-          backgroundColor: themeColor,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+      floatingActionButton:
+          (_isHeadOrAdmin && !_checkingRole)
+              ? Padding(
+                padding: const EdgeInsets.all(16),
+                child: FloatingActionButton(
+                  onPressed: _showCreateBottomSheet,
+                  backgroundColor: themeColor,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.add, color: Colors.white),
+                ),
+              )
+              : null, // Don't show FAB if user is not head or admin
     );
   }
 }

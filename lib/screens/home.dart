@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:teammate/widgets/calendar.dart';
 import 'package:teammate/widgets/common/header_bar.dart';
 
 class HomePage extends StatelessWidget {
@@ -7,6 +8,9 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: Headbar(title: title));
+    return Scaffold(
+      appBar: Headbar(title: title),
+      body: Column(children: [SizedBox(height: 40), Calendar()]),
+    );
   }
 }

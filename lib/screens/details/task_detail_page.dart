@@ -180,6 +180,4 @@ class TaskDetailsPage extends StatelessWidget {
     if (isUrgent) return 'URGENT';
     return 'NORMAL';
   }
-
-  
 }
