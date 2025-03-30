@@ -1,20 +1,40 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/widgets/common/card/card_ongoingTask.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addAdmin.dart';
 import 'package:teammate/widgets/common/card/card_departments.dart';
 
-
 class WorkPageTwo extends StatefulWidget {
   final String title;
   final Map<String, dynamic> data;
+  final FirestoreProjectService _projectService = FirestoreProjectService();
 
-  const WorkPageTwo({super.key, required this.title, required this.data});
+  WorkPageTwo({super.key, required this.title, required this.data});
 
   @override
   State<WorkPageTwo> createState() => _WorkPageTwoState();
 }
 
 class _WorkPageTwoState extends State<WorkPageTwo> {
+  late Future<bool> _isUserHeadFuture;
+  String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    userId = FirebaseAuth.instance.currentUser?.uid;
+    _isUserHeadFuture = _checkIfUserIsHead();
+  }
+
+  Future<bool> _checkIfUserIsHead() async {
+    if (userId == null || widget.data['projectId'] == null) return false;
+    return await widget._projectService.isUserHeadOfProject(
+      widget.data['projectId'],
+      userId!,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,14 +45,25 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          GestureDetector(
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (context) => AddAdminDialog(data: widget.data),
+          FutureBuilder<bool>(
+            future: _isUserHeadFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(); // รอโหลด ไม่ต้องแสดงอะไร
+              }
+              if (snapshot.hasError || !(snapshot.data ?? false)) {
+                return const SizedBox(); // มี error หรือไม่ใช่หัวหน้าโครงการ → ซ่อนไอคอน
+              }
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AddAdminDialog(data: widget.data),
+                  );
+                },
+                child: Image.asset('assets/images/plus_icon.png'),
               );
             },
-            child: Image.asset('assets/images/plus_icon.png'),
           ),
           const SizedBox(width: 16.0),
           Image.asset('assets/images/noti.png'),
@@ -92,7 +123,6 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
               ],
             ),
             const SizedBox(height: 10),
-            // Added the CardOngoingTasks widget
             CardOngoingTasks(data: widget.data),
           ],
         ),

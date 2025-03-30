@@ -1,7 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/screens/details/task_detail_admin_page.dart';
 
 import 'package:teammate/screens/details/task_detail_page.dart';
+import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_task_service.dart';
 import 'package:teammate/utils/date.dart';
 
@@ -162,20 +166,30 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
         case TaskFilter.ongoing:
           _filteredTasks =
               _allTasks
-                  .where((task) => !(task['data']['isSubmit'] ?? false))
+                  .where(
+                    (task) =>
+                        !(task['data']['isSubmit'] ?? false) &&
+                        !(task['data']['isApproved'] ?? false) &&
+                        !(task['data']['isRejected'] ?? false),
+                  )
                   .toList();
           break;
         case TaskFilter.completed:
           _filteredTasks =
               _allTasks
-                  .where((task) => task['data']['isSubmit'] ?? false)
+                  .where(
+                    (task) =>
+                        (task['data']['isSubmit'] ?? false) ||
+                        (task['data']['isApproved'] ?? false),
+                  )
                   .toList();
           break;
         case TaskFilter.overdue:
           _filteredTasks =
               _allTasks.where((task) {
                 final bool isSubmitted = task['data']['isSubmit'] ?? false;
-                if (isSubmitted) return false;
+                final bool isApproved = task['data']['isApproved'] ?? false;
+                if (isSubmitted || isApproved) return false;
 
                 final Timestamp endTimestamp =
                     task['data']['endTask'] ?? Timestamp.now();
@@ -187,7 +201,9 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
           _filteredTasks =
               _allTasks.where((task) {
                 final bool isSubmitted = task['data']['isSubmit'] ?? false;
-                if (isSubmitted) return false;
+                final bool isApproved = task['data']['isApproved'] ?? false;
+                final bool isRejected = task['data']['isRejected'] ?? false;
+                if (isSubmitted || isApproved || isRejected) return false;
 
                 final Timestamp endTimestamp =
                     task['data']['endTask'] ?? Timestamp.now();
@@ -370,7 +386,9 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                       itemCount: _filteredTasks.length,
                       itemBuilder: (context, index) {
                         final taskData = _filteredTasks[index]['data'];
-                        return _buildTaskCard(context, taskData);
+                        // Make sure we pass the correct id to the task card
+                        final taskId = _filteredTasks[index]['id'];
+                        return _buildTaskCard(context, taskData, taskId);
                       },
                     ),
           ),
@@ -392,36 +410,42 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
     }
   }
 
-  Widget _buildTaskCard(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildTaskCard(
+    BuildContext context,
+    Map<String, dynamic> data,
+    String taskId,
+  ) {
     final String title = data['taskTitle'] ?? 'Untitled Task';
     final bool isSubmitted = data['isSubmit'] ?? false;
+    final bool isApproved = data['isApproved'] ?? false;
+    final bool isRejected = data['isRejected'] ?? false;
     final Timestamp endDate = data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
-    final bool isOverdue = DateTime.now().isAfter(dueDate) && !isSubmitted;
+    final bool isOverdue =
+        DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
     final Duration timeLeft = dueDate.difference(DateTime.now());
-    final bool isUrgent = timeLeft.inDays <= 2 && !isSubmitted;
+    final bool isUrgent =
+        timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
 
     // Get department name
     final String departmentId = data['departmentId'] ?? '';
     final String departmentName = _departmentNames[departmentId] ?? '';
 
-    // Determine status and colors
-    String statusText;
-    Color statusColor;
-
-    if (isSubmitted) {
-      statusText = 'Completed';
-      statusColor = Colors.green[700]!;
-    } else if (isOverdue) {
-      statusText = 'Overdue';
-      statusColor = Colors.red[700]!;
-    } else if (isUrgent) {
-      statusText = 'Urgent';
-      statusColor = Colors.orange[700]!;
-    } else {
-      statusText = 'Ongoing';
-      statusColor = Colors.blue[700]!;
-    }
+    // Status color and text using the same logic as TaskContent
+    final Color statusColor = _getPriorityColor(
+      isSubmitted,
+      isOverdue,
+      isUrgent,
+      isApproved,
+      isRejected,
+    );
+    final String statusText = _getPriorityText(
+      isSubmitted,
+      isOverdue,
+      isUrgent,
+      isApproved,
+      isRejected,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -435,18 +459,12 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
       child: Material(
         color: Colors.grey[100],
         borderRadius: BorderRadius.circular(12),
-
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder:
-                    (context) =>
-                        TaskDetailsPage(data: data, themeColor: themeColor),
-              ),
-            ).then((_) => _loadAllTasks());
+            // Prepare correct data format for navigation
+            final taskDetails = {...data, 'id': taskId};
+            _navigateToTaskDetail(context, taskDetails);
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -456,7 +474,7 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                 // Top row with status and due date
                 Row(
                   children: [
-                    // Status indicator
+                    // Status indicator - using the same styling from TaskContent
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -509,7 +527,10 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[850],
-                    decoration: isSubmitted ? TextDecoration.lineThrough : null,
+                    decoration:
+                        isApproved || isSubmitted
+                            ? TextDecoration.lineThrough
+                            : null,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -525,7 +546,9 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                       fontSize: 14,
                       color: Colors.grey[600],
                       decoration:
-                          isSubmitted ? TextDecoration.lineThrough : null,
+                          isApproved || isSubmitted
+                              ? TextDecoration.lineThrough
+                              : null,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -563,7 +586,7 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                     // Progress indicator or completion
                     Expanded(
                       child:
-                          isSubmitted
+                          isApproved
                               ? Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -574,10 +597,30 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'Completed',
+                                    'Approved',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.green[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              )
+                              : isSubmitted
+                              ? Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 16,
+                                    color: Colors.blue[600],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Submitted',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blue[600],
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -672,5 +715,122 @@ class _CardOngoingTasksState extends State<CardOngoingTasks> {
         return '${timeLeft.inMinutes}m remaining';
       }
     }
+  }
+
+  // New method for navigation - directly navigate to admin page
+  void _navigateToTaskDetail(
+    BuildContext context,
+    Map<String, dynamic> taskData,
+  ) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        // Not logged in, just navigate to admin page with isAdmin=false
+        _navigateToAdminPage(context, taskData, false);
+        return;
+      }
+
+      final userId = currentUser.uid;
+      final departmentId = taskData['departmentId'];
+
+      if (departmentId == null) {
+        // Handle null departmentId - navigate with isAdmin=false
+        _navigateToAdminPage(context, taskData, false);
+        return;
+      }
+
+      // Get department data
+      final departmentDoc =
+          await FirebaseFirestore.instance
+              .collection('departments')
+              .doc(departmentId)
+              .get();
+
+      if (!departmentDoc.exists || departmentDoc.data() == null) {
+        // Department not found, navigate with isAdmin=false
+        _navigateToAdminPage(context, taskData, false);
+        return;
+      }
+
+      final departmentData = departmentDoc.data()!;
+      final projectId = departmentData['projectId'];
+
+      bool isAdminOrHead = false;
+
+      if (projectId != null) {
+        // Check if user is head of the project
+        final FirestoreProjectService projectService =
+            FirestoreProjectService();
+        final isHead = await projectService.isUserHeadOfProject(
+          projectId,
+          userId,
+        );
+
+        // Check if user is admin of the department
+        final FirestoreDepartmentService departmentService =
+            FirestoreDepartmentService();
+        final isAdmin = await departmentService.isUserAdminOfDepartment(
+          departmentId,
+          userId,
+        );
+
+        isAdminOrHead = isHead || isAdmin;
+      }
+
+      _navigateToAdminPage(context, taskData, isAdminOrHead);
+    } catch (e) {
+      print('Error during navigation: $e');
+      // On error, navigate with isAdmin=false as fallback
+      _navigateToAdminPage(context, taskData, false);
+    }
+  }
+
+  void _navigateToAdminPage(
+    BuildContext context,
+    Map<String, dynamic> taskData,
+    bool isAdminOrHead,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => TaskDetailsAdminPage(
+              data: taskData,
+              themeColor: themeColor,
+              isAdminOrHead: isAdminOrHead,
+            ),
+      ),
+    ).then((_) => _loadAllTasks()); // Refresh tasks after returning
+  }
+
+  // Status methods from TaskContent
+  Color _getPriorityColor(
+    bool isSubmitted,
+    bool isOverdue,
+    bool isUrgent,
+    bool isApproved,
+    bool isRejected,
+  ) {
+    if (isApproved) return Colors.green[600]!;
+    if (isRejected) return Colors.red[400]!;
+    if (isSubmitted) return Colors.blue[600]!;
+    if (isOverdue) return Colors.red[600]!;
+    if (isUrgent) return Colors.orange[600]!;
+    return Colors.grey[700]!;
+  }
+
+  String _getPriorityText(
+    bool isSubmitted,
+    bool isOverdue,
+    bool isUrgent,
+    bool isApproved,
+    bool isRejected,
+  ) {
+    if (isApproved) return 'APPROVED';
+    if (isRejected) return 'REJECTED';
+    if (isSubmitted) return 'SUBMITTED';
+    if (isOverdue) return 'OVERDUE';
+    if (isUrgent) return 'URGENT';
+    return 'NORMAL';
   }
 }

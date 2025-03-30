@@ -12,7 +12,12 @@ class FirestoreProjectService {
   // สร้างโปรเจคใหม่ใน Firestore
   Future<String> createProject(Map<String, dynamic> projectData) async {
     try {
+      // Add the project document and get a reference with auto-generated ID
       DocumentReference docRef = await _projectsCollection.add(projectData);
+
+      // Update the same document to include its own ID in the data
+      await _projectsCollection.doc(docRef.id).update({'projectId': docRef.id});
+
       return docRef.id;
     } catch (e) {
       print("Error creating project: $e");

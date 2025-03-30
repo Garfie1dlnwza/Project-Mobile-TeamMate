@@ -21,91 +21,103 @@ class TaskContent extends StatelessWidget {
     final bool isRejected = data['isRejected'] ?? false;
     final Timestamp endDate = data['endTask'] ?? Timestamp.now();
     final DateTime dueDate = endDate.toDate();
-    final bool isOverdue = DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
+    final bool isOverdue =
+        DateTime.now().isAfter(dueDate) && !isApproved && !isSubmitted;
     final Duration timeLeft = dueDate.difference(DateTime.now());
-    final bool isUrgent = timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
+    final bool isUrgent =
+        timeLeft.inDays <= 2 && !isApproved && !isSubmitted && !isRejected;
 
-    return Card(
-      elevation: 1.5,
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status badge
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getPriorityColor(isSubmitted, isOverdue, isUrgent),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _getPriorityText(isSubmitted, isOverdue, isUrgent),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+    return InkWell(
+      onTap: () {
+        // Navigate to details page
+        _checkUserRoleAndNavigate(context);
+      },
+      child: Card(
+        elevation: 1.5,
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Status badge
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getPriorityColor(
+                        isSubmitted,
+                        isOverdue,
+                        isUrgent,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _getPriorityText(isSubmitted, isOverdue, isUrgent),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
-                ),
-                const Spacer(),
-                Icon(
-                  Icons.calendar_today,
-                  size: 14,
-                  color: isOverdue ? Colors.red[400] : Colors.grey[600],
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  DateFormatter.formatDateShort(dueDate),
-                  style: TextStyle(
-                    fontSize: 13,
+                  const Spacer(),
+                  Icon(
+                    Icons.calendar_today,
+                    size: 14,
                     color: isOverdue ? Colors.red[400] : Colors.grey[600],
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Task title
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+                  const SizedBox(width: 4),
+                  Text(
+                    DateFormatter.formatDateShort(dueDate),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isOverdue ? Colors.red[400] : Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-            // Task action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildActionButton(
-                  icon: Icons.remove_red_eye,
-                  label: 'Details',
-                  color: Colors.grey[700]!,
-                  backgroundColor: Colors.grey[200]!,
-                  onPressed: () {
-                    // Navigate to details page
-                    _checkUserRoleAndNavigate(context);
-                  },
+              // Task title
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
                 ),
-                const SizedBox(width: 10),
-              ],
-            ),
-          ],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Task action buttons
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.end,
+              //   children: [
+              //     _buildActionButton(
+              //       icon: Icons.remove_red_eye,
+              //       label: 'Details',
+              //       color: Colors.grey[700]!,
+              //       backgroundColor: Colors.grey[200]!,
+              //       onPressed: () {
+              //         // Navigate to details page
+              //         _checkUserRoleAndNavigate(context);
+              //       },
+              //     ),
+              //     const SizedBox(width: 10),
+              //   ],
+              // ),
+            ],
+          ),
         ),
       ),
     );
@@ -170,15 +182,6 @@ class TaskContent extends StatelessWidget {
             ),
       ),
     );
-    // } else {
-    //   Navigator.push(
-    //     context,
-    //     MaterialPageRoute(
-    //       builder:
-    //           (context) => TaskDetailsPage(data: data, themeColor: themeColor),
-    //     ),
-    //   );
-    // }
   }
 
   Widget _buildActionButton({
