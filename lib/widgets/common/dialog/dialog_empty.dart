@@ -27,33 +27,7 @@ class EmptyState extends StatelessWidget {
             message,
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
-          if (isAdmin) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder:
-                      (context) => AddPeopleDialog(
-                        title: 'ADD PEOPLE',
-                        projectId: projectId,
-                        departmentId: departmentId,
-                      ),
-                );
-              },
-              icon: const Icon(Icons.person_add),
-              label: const Text('Add People'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ],
+          if (isAdmin) ...[const SizedBox(height: 24)],
         ],
       ),
     );
