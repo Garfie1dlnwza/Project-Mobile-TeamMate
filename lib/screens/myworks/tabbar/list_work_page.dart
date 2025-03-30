@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/screens/creates/create_document_page.dart';
 import 'package:teammate/screens/creates/create_poll_page.dart';
 import 'package:teammate/screens/creates/create_task_page.dart';
+import 'package:teammate/services/firestore_document_service.dart'; // เพิ่ม service สำหรับเอกสาร
 import 'package:teammate/services/firestore_poll_service.dart';
 import 'package:teammate/services/firestore_post.dart';
 import 'package:teammate/services/firestore_task_service.dart';
@@ -23,7 +24,7 @@ class ListWorkPage extends StatefulWidget {
   State<ListWorkPage> createState() => _ListWorkPageState();
 }
 
-enum WorkType { all, task, poll, post }
+enum WorkType { all, task, poll, post, document } // เพิ่ม document ใน enum
 
 class _ListWorkPageState extends State<ListWorkPage> {
   final Color themeColor = Colors.grey[800]!;
@@ -39,11 +40,14 @@ class _ListWorkPageState extends State<ListWorkPage> {
   List<Map<String, dynamic>> _taskList = [];
   List<Map<String, dynamic>> _pollList = [];
   List<Map<String, dynamic>> _postList = [];
+  List<Map<String, dynamic>> _documentList = []; // เพิ่มลิสต์สำหรับเอกสาร
 
   // Services
   final FirestorePollService _pollService = FirestorePollService();
   final FirestoreTaskService _taskService = FirestoreTaskService();
   final FirestorePostService _postService = FirestorePostService();
+  final FirestoreDocumentService _documentService =
+      FirestoreDocumentService(); // เพิ่ม service สำหรับเอกสาร
 
   @override
   void initState() {
@@ -228,6 +232,7 @@ class _ListWorkPageState extends State<ListWorkPage> {
         _taskList = [];
         _pollList = [];
         _postList = [];
+        _documentList = []; // เคลียร์ลิสต์เอกสาร
       });
 
       // Load tasks
@@ -249,6 +254,15 @@ class _ListWorkPageState extends State<ListWorkPage> {
         pollsSnapshot,
       ) {
         _updatePollList(pollsSnapshot);
+      });
+
+      // Load documents
+      _documentService.getDocumentsByDepartmentId(widget.departmentId).listen((
+        documentsSnapshot,
+      ) {
+        _updateDocumentList(
+          documentsSnapshot,
+        ); // เพิ่มเมธอดสำหรับอัพเดตลิสต์เอกสาร
       });
     } catch (e) {
       debugPrint('Error setting up feed listeners: $e');
@@ -328,6 +342,30 @@ class _ListWorkPageState extends State<ListWorkPage> {
     });
   }
 
+  // เมธอดใหม่สำหรับอัพเดตลิสต์เอกสาร
+  void _updateDocumentList(QuerySnapshot snapshot) {
+    _documentList = [];
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      _documentList.add({
+        'id': doc.id,
+        'type': 'document',
+        'data': data,
+        'createdAt': data['createdAt'] ?? Timestamp.now(),
+      });
+    }
+
+    _documentList.sort((a, b) {
+      final Timestamp aTime = a['createdAt'] as Timestamp;
+      final Timestamp bTime = b['createdAt'] as Timestamp;
+      return bTime.compareTo(aTime);
+    });
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -342,6 +380,12 @@ class _ListWorkPageState extends State<ListWorkPage> {
           _buildFilterChip(WorkType.poll, 'Polls', Icons.poll),
           const SizedBox(width: 8),
           _buildFilterChip(WorkType.post, 'Posts', Icons.post_add),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            WorkType.document,
+            'Documents',
+            Icons.insert_drive_file,
+          ), // เพิ่ม chip สำหรับกรองเอกสาร
           const SizedBox(width: 4),
         ],
       ),
@@ -460,7 +504,10 @@ class _ListWorkPageState extends State<ListWorkPage> {
     switch (_selectedType) {
       case WorkType.all:
         final bool hasNoItems =
-            _taskList.isEmpty && _pollList.isEmpty && _postList.isEmpty;
+            _taskList.isEmpty &&
+            _pollList.isEmpty &&
+            _postList.isEmpty &&
+            _documentList.isEmpty;
 
         if (hasNoItems) {
           content = _buildEmptyCategoryMessage(
@@ -506,6 +553,20 @@ class _ListWorkPageState extends State<ListWorkPage> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: FeedItemCard(
                       item: _postList[index],
+                      themeColor: themeColor,
+                    ),
+                  );
+                }),
+              ],
+
+              // Documents Section (เพิ่มส่วนของเอกสาร)
+              if (_documentList.isNotEmpty) ...[
+                _buildCategoryHeader('Documents', Icons.insert_drive_file),
+                ...List.generate(_documentList.length, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: FeedItemCard(
+                      item: _documentList[index],
                       themeColor: themeColor,
                     ),
                   );
@@ -575,6 +636,26 @@ class _ListWorkPageState extends State<ListWorkPage> {
           );
         }
         break;
+
+      case WorkType.document: // เพิ่ม case สำหรับการกรองเอกสาร
+        if (_documentList.isEmpty) {
+          content = _buildEmptyCategoryMessage('No documents available');
+        } else {
+          content = ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+            itemCount: _documentList.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: FeedItemCard(
+                  item: _documentList[index],
+                  themeColor: themeColor,
+                ),
+              );
+            },
+          );
+        }
+        break;
     }
 
     return content;
@@ -583,7 +664,10 @@ class _ListWorkPageState extends State<ListWorkPage> {
   @override
   Widget build(BuildContext context) {
     final bool hasNoItems =
-        _taskList.isEmpty && _pollList.isEmpty && _postList.isEmpty;
+        _taskList.isEmpty &&
+        _pollList.isEmpty &&
+        _postList.isEmpty &&
+        _documentList.isEmpty;
 
     return Scaffold(
       body:

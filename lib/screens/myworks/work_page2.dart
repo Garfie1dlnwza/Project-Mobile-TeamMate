@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:teammate/screens/noti_page.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/widgets/common/card/card_ongoingTask.dart';
 import 'package:teammate/widgets/common/dialog/dialog_addAdmin.dart';
@@ -35,6 +36,14 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
     );
   }
 
+  // Navigate to Notifications Page
+  void _navigateToNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const NotiPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,10 +58,10 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
             future: _isUserHeadFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SizedBox(); // รอโหลด ไม่ต้องแสดงอะไร
+                return const SizedBox(); // Wait for loading, don't show anything
               }
               if (snapshot.hasError || !(snapshot.data ?? false)) {
-                return const SizedBox(); // มี error หรือไม่ใช่หัวหน้าโครงการ → ซ่อนไอคอน
+                return const SizedBox(); // Error or not project head → hide icon
               }
               return GestureDetector(
                 onTap: () {
@@ -66,7 +75,11 @@ class _WorkPageTwoState extends State<WorkPageTwo> {
             },
           ),
           const SizedBox(width: 16.0),
-          Image.asset('assets/images/noti.png'),
+          // Wrap the notification icon with GestureDetector to handle tap
+          GestureDetector(
+            onTap: _navigateToNotifications,
+            child: Image.asset('assets/images/noti.png'),
+          ),
         ],
         actionsPadding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
       ),

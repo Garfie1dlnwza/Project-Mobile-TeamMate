@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/screens/creates/create_post.dart';
 import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_document_service.dart'; // เพิ่ม service สำหรับเอกสาร
 import 'package:teammate/services/firestore_poll_service.dart';
 import 'package:teammate/services/firestore_post.dart';
 import 'package:teammate/services/firestore_project_service.dart';
@@ -32,6 +33,8 @@ class _PostPageState extends State<PostPage>
   final FirestorePollService _pollService = FirestorePollService();
   final FirestoreTaskService _taskService = FirestoreTaskService();
   final FirestorePostService _postService = FirestorePostService();
+  final FirestoreDocumentService _documentService =
+      FirestoreDocumentService(); // เพิ่ม service สำหรับเอกสาร
 
   String _headName = '';
   String _departmentName = '';
@@ -86,6 +89,13 @@ class _PostPageState extends State<PostPage>
       ) {
         _updateCombinedFeed(pollsSnapshot, 'poll');
       });
+
+      // เพิ่มการโหลดเอกสาร
+      _documentService.getDocumentsByDepartmentId(widget.departmentId).listen((
+        documentsSnapshot,
+      ) {
+        _updateCombinedFeed(documentsSnapshot, 'document');
+      });
     } catch (e) {
       debugPrint('Error setting up feed listeners: $e');
       setState(() {
@@ -96,6 +106,7 @@ class _PostPageState extends State<PostPage>
   }
 
   void _updateCombinedFeed(QuerySnapshot snapshot, String type) {
+    // ลบรายการเก่าที่มี type เดียวกัน
     listShowWork.removeWhere((item) => item['type'] == type);
 
     for (var doc in snapshot.docs) {
@@ -108,6 +119,7 @@ class _PostPageState extends State<PostPage>
       });
     }
 
+    // เรียงลำดับตามเวลาล่าสุด
     listShowWork.sort((a, b) {
       final Timestamp aTime = a['createdAt'] as Timestamp;
       final Timestamp bTime = b['createdAt'] as Timestamp;

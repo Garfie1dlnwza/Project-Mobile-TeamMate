@@ -382,26 +382,27 @@ class FirestoreNotificationService {
 
   // ส่งการแจ้งเตือนเมื่อมีการแชร์เอกสาร
   Future<void> sendDocumentSharedNotification({
-    required String userId,
+    required String departmentId,
     required String documentId,
     required String documentTitle,
     required String sharerName,
-    String? projectId,
+    required String projectId,
   }) async {
-    final String message = '$sharerName shared a document: $documentTitle';
-
-    await createNotification(
-      userId: userId,
-      type: 'document_shared',
-      message: message,
-      documentId: documentId,
-      projectId: projectId,
-      senderId: _auth.currentUser?.uid,
-      additionalData: {
-        'documentTitle': documentTitle,
-        'sharerName': sharerName,
-      },
-    );
+    try {
+      await sendNotificationToDepartmentMembers(
+        departmentId: departmentId,
+        type: 'document_shared',
+        message: '$sharerName shared a new document: $documentTitle',
+        additionalData: {
+          'documentId': documentId,
+          'documentTitle': documentTitle,
+          'sharerName': sharerName,
+          'projectId': projectId,
+        },
+      );
+    } catch (e) {
+      debugPrint('Error sending document notification: $e');
+    }
   }
 
   // นับจำนวนการแจ้งเตือนที่ยังไม่ได้อ่าน

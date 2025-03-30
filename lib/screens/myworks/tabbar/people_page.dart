@@ -142,7 +142,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 dividerColor: Colors.transparent,
                 indicatorWeight: 3,
                 tabs: const [
-                  Tab(text: 'ALL MEMBERS'),
+                  Tab(text: 'MEMBERS'),
                   Tab(text: 'ADMINS'),
                   Tab(text: 'HEAD'), // Add new tab for project head
                 ],
@@ -225,7 +225,7 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 departmentService: _departmentService,
                 departmentId: widget.departmentId,
                 projectId: widget.projectId,
-   
+                projectService: _projectService,
               ),
               // Head tab
               HeadTab(
@@ -236,7 +236,6 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 isAdmin: _isAdmin,
                 isHead: _isHead,
                 projectId: widget.projectId,
-             
               ),
             ],
           );

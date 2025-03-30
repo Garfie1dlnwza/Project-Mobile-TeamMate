@@ -211,6 +211,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
       _showErrorSnackBar('Error selecting files: $e');
     }
   }
+  // Completely replace the original _createDocument method with this:
 
   Future<void> _createDocument() async {
     if (_titleController.text.isEmpty) {
@@ -229,15 +230,9 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
     });
 
     try {
-      // Create a document reference in Firestore first
-      DocumentReference docRef =
-          _firestore
-              .collection('projects')
-              .doc(widget.projectId)
-              .collection('departments')
-              .doc(widget.departmentId)
-              .collection('documents')
-              .doc();
+      // Create a new document reference in top-level collection (similar to tasks)
+      DocumentReference docRef = _firestore.collection('documents').doc();
+      final String documentId = docRef.id;
 
       // Upload all attachments
       List<Map<String, dynamic>> uploadedAttachments = [];
@@ -251,8 +246,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
 
         final uploadedAttachment = await _fileAttachmentService.uploadFile(
           attachment: attachment,
-          storagePath:
-              'projects/${widget.projectId}/departments/${widget.departmentId}/documents/${docRef.id}',
+          storagePath: 'documents/$documentId', // Simplified storage path
           onProgress: (progress) {
             setState(() {
               _uploadProgress[attachment.fileName ?? ''] = progress;
@@ -284,9 +278,14 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
 
       // Create document data
       Map<String, dynamic> documentData = {
+        'documentId': documentId,
         'title': _titleController.text,
         'description': _descriptionController.text,
         'createdAt': FieldValue.serverTimestamp(),
+        'departmentId': widget.departmentId,
+        'projectId': widget.projectId,
+        'uploadedBy': FirebaseAuth.instance.currentUser?.uid,
+        'uploadedByName': FirebaseAuth.instance.currentUser?.displayName,
         'attachments': uploadedAttachments,
       };
 
@@ -312,17 +311,27 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
           .add({
             'type': 'document',
             'createdAt': FieldValue.serverTimestamp(),
+            'departmentId': widget.departmentId,
+            'projectId': widget.projectId,
+            'documentId': documentId, // Add document ID reference
             'data': documentData,
+          });
+
+      // Add document ID to department's documents array
+      await _firestore
+          .collection('departments')
+          .doc(widget.departmentId)
+          .update({
+            'documents': FieldValue.arrayUnion([docRef.id]),
           });
 
       setState(() {
         _isUploading = false;
         _isLoading = false;
       });
+
       final departmentDoc =
           await _firestore
-              .collection('projects')
-              .doc(widget.projectId)
               .collection('departments')
               .doc(widget.departmentId)
               .get();
@@ -344,7 +353,17 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
           },
         );
       }
+
       _showSuccessSnackBar('Document created successfully!');
+      await _notificationService.sendDocumentSharedNotification(
+        departmentId: widget.departmentId,
+        documentId: docRef.id,
+        documentTitle: _titleController.text,
+        sharerName:
+            FirebaseAuth.instance.currentUser?.displayName ?? 'A team member',
+        projectId: widget.projectId,
+      );
+
       Navigator.pop(context, docRef.id);
     } catch (e) {
       setState(() {
