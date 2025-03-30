@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:teammate/theme/app_colors.dart';
+import 'dart:ui';
 
 class ProfileAvatar extends StatelessWidget {
   final String name;
@@ -7,6 +8,9 @@ class ProfileAvatar extends StatelessWidget {
   final Color? backgroundColor;
   final Color? textColor;
   final String? profileImageUrl;
+  final bool isOnline;
+  final VoidCallback? onTap;
+  final bool showShadow;
 
   const ProfileAvatar({
     super.key,
@@ -15,74 +19,142 @@ class ProfileAvatar extends StatelessWidget {
     this.backgroundColor,
     this.textColor,
     this.profileImageUrl,
+    this.isOnline = false,
+    this.onTap,
+    this.showShadow = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final String initial = _getInitial(name);
-    final Color borderColor = backgroundColor ?? AppColors.primary;
 
-    // Get a unique color based on the user's name
+    // Get color from name or use provided background color
     final Color avatarColor = backgroundColor ?? _getColorFromName(name);
 
-    // Use white text for darker background colors, dark text for lighter ones
+    // Determine text color based on background darkness
     final bool isDarkColor = _isDarkColor(avatarColor);
     final Color actualTextColor =
         textColor ?? (isDarkColor ? Colors.white : Colors.grey[800]!);
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        // Outer circle with border
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: borderColor, width: size * 0.025),
-            color: avatarColor.withOpacity(0.2),
-          ),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.transparent,
         ),
-        // Inner circle with profile image or initial
-        Container(
-          width: size * 0.92,
-          height: size * 0.92,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color:
-                profileImageUrl == null || profileImageUrl!.isEmpty
-                    ? avatarColor
-                    : Colors.grey[200],
-            image:
-                profileImageUrl != null && profileImageUrl!.isNotEmpty
-                    ? DecorationImage(
-                      image: NetworkImage(profileImageUrl!),
-                      fit: BoxFit.cover,
-                    )
-                    : null,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
+        child: Stack(
+          children: [
+            // Main avatar circle
+            Center(
+              child: Container(
+                width: size * 0.95,
+                height: size * 0.95,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      profileImageUrl == null || profileImageUrl!.isEmpty
+                          ? avatarColor
+                          : Colors.grey[200],
+                  boxShadow:
+                      showShadow
+                          ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                              spreadRadius: 0,
+                            ),
+                            BoxShadow(
+                              color: avatarColor.withOpacity(0.1),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                              spreadRadius: 2,
+                            ),
+                          ]
+                          : null,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.9),
+                    width: size * 0.02,
+                  ),
+                  image:
+                      profileImageUrl != null && profileImageUrl!.isNotEmpty
+                          ? DecorationImage(
+                            image: NetworkImage(profileImageUrl!),
+                            fit: BoxFit.cover,
+                          )
+                          : null,
+                ),
+                child:
+                    profileImageUrl == null || profileImageUrl!.isEmpty
+                        ? Center(
+                          child: Text(
+                            initial,
+                            style: TextStyle(
+                              color: actualTextColor,
+                              fontSize: size * 0.36,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        )
+                        : null,
               ),
-            ],
-          ),
-          child:
-              profileImageUrl == null || profileImageUrl!.isEmpty
-                  ? Center(
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        color: actualTextColor,
-                        fontSize: size * 0.4,
-                        fontWeight: FontWeight.bold,
-                      ),
+            ),
+
+            // Optional online status indicator
+            if (isOnline)
+              Positioned(
+                right: size * 0.05,
+                bottom: size * 0.05,
+                child: Container(
+                  width: size * 0.28,
+                  height: size * 0.28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.green,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: size * 0.035,
                     ),
-                  )
-                  : null,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        offset: const Offset(0, 1),
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Subtle highlight effect (top-left inner white gradient)
+            Center(
+              child: ClipOval(
+                child: Container(
+                  width: size * 0.95,
+                  height: size * 0.95,
+                  foregroundDecoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white.withOpacity(0.15),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.05),
+                      ],
+                      stops: const [0.0, 0.6, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -92,41 +164,36 @@ class ProfileAvatar extends StatelessWidget {
       return Colors.grey;
     }
 
-    // Predefined vibrant colors for avatars
-    final List<List<Color>> colorOptions = [
-      [Colors.red.shade300, Colors.red.shade700],
-      [Colors.pink.shade300, Colors.pink.shade700],
-      [Colors.purple.shade300, Colors.purple.shade700],
-      [Colors.deepPurple.shade300, Colors.deepPurple.shade700],
-      [Colors.indigo.shade300, Colors.indigo.shade700],
-      [Colors.blue.shade300, Colors.blue.shade700],
-      [Colors.lightBlue.shade300, Colors.lightBlue.shade700],
-      [Colors.cyan.shade300, Colors.cyan.shade700],
-      [Colors.teal.shade300, Colors.teal.shade700],
-      [Colors.green.shade300, Colors.green.shade700],
-      [Colors.lightGreen.shade300, Colors.lightGreen.shade700],
-      [Colors.lime.shade300, Colors.lime.shade700],
-      [Colors.amber.shade300, Colors.amber.shade700],
-      [Colors.orange.shade300, Colors.orange.shade700],
-      [Colors.deepOrange.shade300, Colors.deepOrange.shade700],
-      [Colors.brown.shade300, Colors.brown.shade700],
+    // Minimal and modern color palette
+    final List<Color> colorOptions = [
+      const Color(0xFF5E97F6), // Blue
+      const Color(0xFF4DD0E1), // Cyan
+      const Color(0xFF4CAF50), // Green
+      const Color(0xFFF06292), // Pink
+      const Color(0xFF9575CD), // Purple
+      const Color(0xFFFF8A65), // Orange
+      const Color(0xFF7E57C2), // Deep Purple
+      const Color(0xFF26A69A), // Teal
+      const Color(0xFFAB47BC), // Purple
+      const Color(0xFF66BB6A), // Light Green
+      const Color(0xFFEC407A), // Pink
+      const Color(0xFF42A5F5), // Light Blue
+      const Color(0xFF78909C), // Blue Grey
+      const Color(0xFF5C6BC0), // Indigo
+      const Color(0xFFFFCA28), // Amber
+      const Color(0xFF7CB342), // Light Green
     ];
 
     // Use hash code to deterministically select a color
     final int colorIndex = name.hashCode.abs() % colorOptions.length;
-
-    // Use the middle color for simplicity
-    return colorOptions[colorIndex][0];
+    return colorOptions[colorIndex];
   }
 
   // Determine if a color is dark (to use white text) or light (to use dark text)
   bool _isDarkColor(Color color) {
-    // Calculate relative luminance
-    // Using the formula: 0.299*R + 0.587*G + 0.114*B
+    // Calculate relative luminance using formula: 0.299*R + 0.587*G + 0.114*B
     final double luminance =
         (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) / 255;
-
-    // Return true if the color is dark (luminance < 0.5)
     return luminance < 0.5;
   }
 
