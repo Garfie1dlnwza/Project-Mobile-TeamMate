@@ -36,15 +36,13 @@ class AllMembersTab extends StatelessWidget {
     return Column(
       children: [
         Expanded(child: _buildMembersContent(context)),
-     
+
         if (showAddButton && onAddButtonPressed != null)
-          Container(
-            width: double.infinity,
+          Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 16.0,
               vertical: 12.0,
             ),
-            color: Colors.white,
             child: ElevatedButton.icon(
               onPressed: onAddButtonPressed,
               icon: const Icon(Icons.person_add, color: Colors.white),
@@ -55,6 +53,7 @@ class AllMembersTab extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8.0),
                 ),

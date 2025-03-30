@@ -216,12 +216,13 @@ class _PeoplePageState extends State<PeoplePage> with TickerProviderStateMixin {
                 showAddButton: _isAdmin || _isHead,
                 onAddButtonPressed: _showAddPeopleDialog,
               ),
-              // Admins tab
+              // Admins tab - ส่งค่า isHead เพิ่มเติม
               AdminsTab(
                 adminIds: adminIds,
                 searchQuery: _searchQuery,
                 userService: _userService,
                 isAdmin: _isAdmin,
+                isHead: _isHead, // เพิ่มการส่งค่า isHead ให้กับ AdminsTab
                 departmentService: _departmentService,
                 departmentId: widget.departmentId,
                 projectId: widget.projectId,
