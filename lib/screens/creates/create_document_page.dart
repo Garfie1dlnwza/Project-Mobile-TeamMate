@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:teammate/services/googledrive_file.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/theme/app_colors.dart';
 
 class CreateDocumentPage extends StatefulWidget {
@@ -32,7 +34,9 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
   bool _isUploading = false;
   double _uploadProgress = 0.0;
 
-  final GoogleDriveFileService _fileService = GoogleDriveFileService();
+  // Firebase instances
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> _pickAttachment() async {
     try {
@@ -45,7 +49,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
       if (result != null) {
         final file = result.files.single;
 
-        // คำนวณขนาดไฟล์ในหน่วยที่เหมาะสม
+        // Calculate file size in appropriate units
         String fileSize;
         int bytes = file.size;
 
@@ -125,17 +129,78 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
     });
 
     try {
-      _simulateUploadProgress();
+      // Create a document reference in Firestore first
+      DocumentReference docRef =
+          _firestore
+              .collection('projects')
+              .doc(widget.projectId)
+              .collection('departments')
+              .doc(widget.departmentId)
+              .collection('documents')
+              .doc();
 
-      String documentId = await _fileService.createDocument(
-        projectId: widget.projectId,
-        departmentId: widget.departmentId,
-        title: _titleController.text,
-        description: _descriptionController.text,
-        attachmentPath: _attachmentPath,
-        attachmentBytes: _attachmentBytes,
-        attachmentName: _attachmentName,
-      );
+      // Upload file to Firebase Storage with progress tracking
+      final String storageRef =
+          'projects/${widget.projectId}/departments/${widget.departmentId}/documents/${docRef.id}/${_attachmentName}';
+
+      // Start upload task based on platform
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = _storage
+            .ref(storageRef)
+            .putData(
+              _attachmentBytes!,
+              SettableMetadata(
+                contentType: _getContentType(_attachmentType ?? ''),
+              ),
+            );
+      } else {
+        uploadTask = _storage.ref(storageRef).putFile(File(_attachmentPath!));
+      }
+
+      // Track upload progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        setState(() {
+          _uploadProgress = progress;
+        });
+      });
+
+      // Wait for upload to complete
+      await uploadTask;
+
+      // Get download URL
+      String downloadUrl = await _storage.ref(storageRef).getDownloadURL();
+
+      // Now create the document in Firestore
+      await docRef.set({
+        'title': _titleController.text,
+        'description': _descriptionController.text,
+        'fileName': _attachmentName,
+        'fileType': _attachmentType,
+        'fileSize': _attachmentSize,
+        'downloadUrl': downloadUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Create a feed item for this document
+      await _firestore
+          .collection('projects')
+          .doc(widget.projectId)
+          .collection('feed')
+          .add({
+            'type': 'document',
+            'createdAt': FieldValue.serverTimestamp(),
+            'data': {
+              'documentId': docRef.id,
+              'title': _titleController.text,
+              'description': _descriptionController.text,
+              'fileName': _attachmentName,
+              'fileType': _attachmentType,
+              'fileSize': _attachmentSize,
+              'downloadUrl': downloadUrl,
+            },
+          });
 
       setState(() {
         _isUploading = false;
@@ -147,7 +212,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
       if (!mounted) return;
 
       _showSuccessSnackBar('สร้างเอกสารสำเร็จ!');
-      Navigator.pop(context, documentId);
+      Navigator.pop(context, docRef.id);
     } catch (e) {
       setState(() {
         _isUploading = false;
@@ -161,6 +226,31 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  String _getContentType(String fileType) {
+    switch (fileType.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+      case 'docx':
+        return 'application/msword';
+      case 'xls':
+      case 'xlsx':
+        return 'application/vnd.ms-excel';
+      case 'ppt':
+      case 'pptx':
+        return 'application/vnd.ms-powerpoint';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -721,10 +811,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
             Container(
               color: Colors.black.withOpacity(0.6),
               child: BackdropFilter(
-                filter:
-                    kIsWeb
-                        ? ImageFilter.blur(sigmaX: 5, sigmaY: 5)
-                        : ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                 child: Center(
                   child: Card(
                     elevation: 8,
@@ -757,7 +844,7 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
                           SizedBox(
                             width: 250,
                             child: Text(
-                              'Please wait while we upload your document to Google Drive...',
+                              'Please wait while we upload your document to Firebase Storage...',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
