@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:teammate/hardware/take_picture_screen.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/widgets/common/profile.dart';
 
@@ -8,6 +11,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:path/path.dart' as path;
 
 class ProfileEditCard extends StatefulWidget {
   final Function? onImageUpdated;
@@ -20,6 +24,10 @@ class ProfileEditCard extends StatefulWidget {
 
 class _ProfileEditCardState extends State<ProfileEditCard> {
   bool _isLoading = false;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
+  File? _selectedImage;
 
   Future<void> _selectImageFromGallery() async {
     try {
@@ -27,8 +35,20 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
         _isLoading = true;
       });
 
-      if (widget.onImageUpdated != null) {
-        widget.onImageUpdated!();
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800, // ลดขนาดรูปเพื่อประหยัดพื้นที่เก็บข้อมูล
+        maxHeight: 800,
+        imageQuality: 85, // คุณภาพรูป 85%
+      );
+
+      if (image != null) {
+        File imageFile = File(image.path);
+        setState(() {
+          _selectedImage = imageFile;
+        });
+        await _uploadImageToFirebase(imageFile);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -41,20 +61,14 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
     }
   }
 
-  Future<void> _selectImageFromCamera() async {
+  Future<void> _processImageFromCamera(File imageFile) async {
     try {
       setState(() {
         _isLoading = true;
+        _selectedImage = imageFile;
       });
 
-      // if (image != null) {
-      //   File imageFile = File(image.path);
-      //   String? imageUrl = await SupabaseService.uploadToSupabase(imageFile);
-
-      //   if (imageUrl != null && widget.onImageUpdated != null) {
-      //     widget.onImageUpdated!();
-      //   }
-      // }
+      await _uploadImageToFirebase(imageFile);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
@@ -63,6 +77,101 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _uploadImageToFirebase(File imageFile) async {
+    try {
+      // รับข้อมูลผู้ใช้ปัจจุบัน
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw Exception('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
+      }
+
+      // สร้างชื่อไฟล์ที่ไม่ซ้ำกัน
+      final fileName =
+          '${currentUser.uid}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
+
+      // กำหนด path ในการเก็บไฟล์บน Firebase Storage
+      final storageRef = _storage.ref().child('profile_images/$fileName');
+
+      // เริ่มอัพโหลดไฟล์
+      final uploadTask = storageRef.putFile(
+        imageFile,
+        SettableMetadata(
+          contentType:
+              'image/${path.extension(imageFile.path).replaceFirst('.', '')}',
+        ),
+      );
+
+      // ติดตามความคืบหน้าในการอัพโหลด (สามารถแสดงผลให้ผู้ใช้เห็นได้ในอนาคต)
+      uploadTask.snapshotEvents.listen(
+        (TaskSnapshot snapshot) {
+          final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+          print('Upload progress: ${(progress * 100).toStringAsFixed(2)}%');
+        },
+        onError: (e) {
+          print('อัพโหลดไฟล์ล้มเหลว: $e');
+        },
+      );
+
+      // รอให้อัพโหลดเสร็จสิ้น
+      await uploadTask.whenComplete(() => print('อัพโหลดเสร็จสิ้น'));
+
+      // รับ URL ของไฟล์ที่อัพโหลด
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      // อัปเดตโปรไฟล์ของผู้ใช้ใน Firebase Auth
+      await currentUser.updatePhotoURL(downloadUrl);
+
+      // แจ้งเตือนให้ผู้ใช้ทราบว่าอัพโหลดสำเร็จ
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('อัพโหลดรูปโปรไฟล์สำเร็จ'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // ส่งการแจ้งเตือนผู้ใช้เกี่ยวกับการอัพเดตรูปโปรไฟล์
+      await _sendProfileUpdateNotification();
+
+      // เรียกใช้ callback หากมีการกำหนด
+      if (widget.onImageUpdated != null) {
+        widget.onImageUpdated!();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('อัพโหลดรูปโปรไฟล์ล้มเหลว: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('เกิดข้อผิดพลาดในการอัพโหลดรูปโปรไฟล์: $e');
+    }
+  }
+
+  // เพิ่มเมธอดสำหรับส่งการแจ้งเตือนเมื่ออัพเดตรูปโปรไฟล์
+  Future<void> _sendProfileUpdateNotification() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await _notificationService.createNotification(
+        userId: user.uid,
+        type: 'profile_update',
+        message: 'Your profile picture has been updated successfully',
+        additionalData: {
+          'updateType': 'profile_picture',
+          'timestamp': DateTime.now().millisecondsSinceEpoch,
+        },
+      );
+    } catch (e) {
+      print('Error sending profile update notification: $e');
+      // Silent fail - ไม่ให้มีผลกับการอัพเดทรูปโปรไฟล์
     }
   }
 
@@ -117,7 +226,20 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
                     ),
                   ),
                   onTap: () async {
+                    Navigator.of(context).pop(); // ปิด bottom sheet ก่อน
+
                     final cameras = await availableCameras();
+                    if (cameras.isEmpty) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('ไม่พบกล้องบนอุปกรณ์นี้'),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -126,10 +248,9 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
                       ),
                     );
 
-                    // Handle the returned image file
+                    // จัดการกับไฟล์รูปภาพที่ได้รับกลับมา
                     if (result != null && result is File) {
-                      // Do something with the image, like uploading or displaying
-                      print('Image captured: ${result.path}');
+                      await _processImageFromCamera(result);
                     }
                   },
                 ),
@@ -184,8 +305,21 @@ class _ProfileEditCardState extends State<ProfileEditCard> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  // If user has photo, show it, otherwise show avatar with initial
-                  if (hasPhoto)
+                  // ถ้าผู้ใช้มีรูปโปรไฟล์ในระบบ ให้แสดงรูปนั้น หรือถ้ามีการเลือกรูปใหม่ ให้แสดงรูปที่เลือก
+                  if (_selectedImage != null)
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 2),
+                        image: DecorationImage(
+                          image: FileImage(_selectedImage!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                  else if (hasPhoto)
                     Container(
                       width: 120,
                       height: 120,
