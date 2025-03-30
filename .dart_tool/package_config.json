@@ -68,24 +68,6 @@
       "languageVersion": "3.1"
     },
     {
-      "name": "cached_network_image",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/cached_network_image-3.4.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
-      "name": "cached_network_image_platform_interface",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/cached_network_image_platform_interface-4.1.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
-      "name": "cached_network_image_web",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/cached_network_image_web-1.3.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
       "name": "camera",
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/camera-0.11.1",
       "packageUri": "lib/",
@@ -350,12 +332,6 @@
       "languageVersion": "3.7"
     },
     {
-      "name": "flutter_cache_manager",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_cache_manager-3.4.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
       "name": "flutter_dropzone",
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_dropzone-4.2.1",
       "packageUri": "lib/",
@@ -381,7 +357,37 @@
     },
     {
       "name": "flutter_image_compress",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress-1.1.3",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress-2.4.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_image_compress_common",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress_common-1.0.6",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_image_compress_macos",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress_macos-1.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_image_compress_ohos",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress_ohos-0.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_image_compress_platform_interface",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress_platform_interface-1.0.5",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_image_compress_web",
+      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/flutter_image_compress_web-0.1.5",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
@@ -650,12 +656,6 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "octo_image",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/octo_image-2.1.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
       "name": "path",
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
@@ -818,36 +818,6 @@
       "languageVersion": "2.12"
     },
     {
-      "name": "sqflite",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sqflite-2.4.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
-    },
-    {
-      "name": "sqflite_android",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sqflite_android-2.4.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
-    },
-    {
-      "name": "sqflite_common",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sqflite_common-2.5.5",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
-    },
-    {
-      "name": "sqflite_darwin",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sqflite_darwin-2.4.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
-    },
-    {
-      "name": "sqflite_platform_interface",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/sqflite_platform_interface-2.4.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.5"
-    },
-    {
       "name": "stack_trace",
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/stack_trace-1.12.1",
       "packageUri": "lib/",
@@ -888,12 +858,6 @@
       "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/supabase_flutter-2.8.4",
       "packageUri": "lib/",
       "languageVersion": "3.0"
-    },
-    {
-      "name": "synchronized",
-      "rootUri": "file:///Users/rawiponponsarutwanit/.pub-cache/hosted/pub.dev/synchronized-3.3.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
     },
     {
       "name": "term_glyph",
@@ -1058,7 +1022,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2025-03-30T19:18:17.907619Z",
+  "generated": "2025-03-30T20:18:12.335837Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///opt/homebrew/Caskroom/flutter/3.24.5/flutter",
