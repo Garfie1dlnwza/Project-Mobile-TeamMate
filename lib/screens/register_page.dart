@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
@@ -57,12 +58,18 @@ class _RegisterPageState extends State<RegisterPage> {
 
       final user = credential.user;
       if (user != null) {
+        // สร้าง ID สำหรับใช้ในระบบแจ้งเตือน - ใช้ Uuid
         var uuid = Uuid();
         String notiId = uuid.v4();
+
+        // สร้างชื่อเต็ม
         String fullName =
             '${_nameController.text.trim()} ${_surnameController.text.trim()}';
+
+        // อัปเดตชื่อที่แสดงใน Firebase Auth
         await user.updateDisplayName(fullName);
 
+        // บันทึกข้อมูลผู้ใช้ใน Firestore
         await _userService.createOrUpdateUser(
           user.uid,
           fullName,
@@ -71,6 +78,9 @@ class _RegisterPageState extends State<RegisterPage> {
           projectIds: [],
           notiId: notiId,
         );
+
+        // สร้างข้อความต้อนรับในแอพ (ทำเป็นการแจ้งเตือนต้อนรับ)
+        await _createWelcomeNotification(user.uid);
 
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/login');
@@ -91,6 +101,30 @@ class _RegisterPageState extends State<RegisterPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // สร้างการแจ้งเตือนต้อนรับสำหรับผู้ใช้ใหม่
+  Future<void> _createWelcomeNotification(String userId) async {
+    try {
+      // นำเข้า FirestoreNotificationService
+      final firestoreNotificationService =
+          FirestoreNotificationService(); // ต้องนำเข้าด้านบน
+
+      // สร้างการแจ้งเตือนต้อนรับ
+      await firestoreNotificationService.createNotification(
+        userId: userId,
+        type: 'welcome',
+        message:
+            'Welcome to TeammateApp! Start by exploring projects or creating your own.',
+        additionalData: {
+          'title': 'Welcome to TeammateApp',
+          'image': 'welcome_image', // ถ้ามี
+        },
+      );
+    } catch (e) {
+      debugPrint("Error creating welcome notification: $e");
+      // ไม่ throw exception เพื่อให้การลงทะเบียนยังทำงานได้ถึงแม้จะไม่สามารถสร้างการแจ้งเตือนได้
     }
   }
 

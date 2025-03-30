@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 
@@ -15,6 +16,8 @@ class _NotiPageState extends State<NotiPage> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _notifications = [];
   String? _errorMessage;
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
 
   // Filter options
   bool _showAll = true;
@@ -24,6 +27,13 @@ class _NotiPageState extends State<NotiPage> {
   void initState() {
     super.initState();
     _loadNotifications();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // นับจำนวนการแจ้งเตือนที่ยังไม่ได้อ่านและอัปเดตสถานะผู้ใช้
+    _notificationService.syncNotificationStatusWithCount();
   }
 
   Future<void> _loadNotifications() async {
@@ -63,6 +73,9 @@ class _NotiPageState extends State<NotiPage> {
         _notifications = notifications;
         _isLoading = false;
       });
+
+      // นับจำนวนการแจ้งเตือนที่ยังไม่ได้อ่านและอัปเดตสถานะผู้ใช้
+      await _notificationService.syncNotificationStatusWithCount();
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -73,15 +86,7 @@ class _NotiPageState extends State<NotiPage> {
 
   Future<void> _markAsRead(String notificationId) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('notifications')
-          .doc(notificationId)
-          .update({'read': true});
+      await _notificationService.markAsRead(notificationId);
 
       setState(() {
         final index = _notifications.indexWhere(
@@ -99,29 +104,7 @@ class _NotiPageState extends State<NotiPage> {
 
   Future<void> _markAllAsRead() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      // Create a batch to update multiple documents
-      final batch = FirebaseFirestore.instance.batch();
-
-      // Get unread notifications
-      final unreadNotifications =
-          _notifications.where((n) => !(n['read'] ?? false)).toList();
-
-      // Add each update operation to the batch
-      for (var notification in unreadNotifications) {
-        final docRef = FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('notifications')
-            .doc(notification['id']);
-
-        batch.update(docRef, {'read': true});
-      }
-
-      // Commit the batch
-      await batch.commit();
+      await _notificationService.markAllAsRead();
 
       // Update local state
       setState(() {
@@ -145,6 +128,31 @@ class _NotiPageState extends State<NotiPage> {
           content: Text('Error: $e'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteNotification(String notificationId) async {
+    try {
+      await _notificationService.deleteNotification(notificationId);
+
+      setState(() {
+        _notifications.removeWhere((n) => n['id'] == notificationId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Notification deleted'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Error deleting notification: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting notification: $e'),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -491,10 +499,7 @@ class _NotiPageState extends State<NotiPage> {
             direction: DismissDirection.endToStart,
             onDismissed: (direction) {
               // Delete notification
-              // TODO: Implement actual deletion from Firestore
-              setState(() {
-                notifications.removeAt(index);
-              });
+              _deleteNotification(notification['id']);
             },
             child: Card(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

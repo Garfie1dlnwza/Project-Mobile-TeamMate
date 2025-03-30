@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polls/flutter_polls.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_poll_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:intl/intl.dart';
@@ -26,7 +28,8 @@ class _CreatePollPageState extends State<CreatePollPage>
   DateTime? _selectedEndDate;
   final FirestorePollService _pollService = FirestorePollService();
   bool _isCreating = false;
-
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
   // Animation controller
   late AnimationController _animationController;
   late Animation<double> _fadeInAnimation;
@@ -145,7 +148,20 @@ class _CreatePollPageState extends State<CreatePollPage>
           options: options,
           endDate: _selectedEndDate,
         );
-
+        await _notificationService.sendNotificationToDepartmentMembers(
+          departmentId: widget.departmentId,
+          type: 'poll_created',
+          message:
+              '${FirebaseAuth.instance.currentUser?.displayName ?? 'A team member'} created a new poll: ${_questionController.text}',
+          additionalData: {
+            'pollId': pollId,
+            'pollQuestion': _questionController.text,
+            'creatorName':
+                FirebaseAuth.instance.currentUser?.displayName ??
+                'A team member',
+            'projectId': widget.projectId,
+          },
+        );
         _showSuccessSnackBar('Poll created successfully');
         Future.delayed(Duration(milliseconds: 1500), () {
           Navigator.pop(context, pollId);

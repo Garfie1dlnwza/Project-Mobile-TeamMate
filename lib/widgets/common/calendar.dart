@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:teammate/services/firestore_task_service.dart';
 import 'package:teammate/theme/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Calendar extends StatefulWidget {
   final Function(DateTime)? onDateSelect;
   final DateTime? selectedDate;
-
-  const Calendar({super.key, this.onDateSelect, this.selectedDate});
+  final String? projectId; 
+  const Calendar({
+    super.key,
+    this.onDateSelect,
+    this.selectedDate,
+    this.projectId,
+  });
 
   @override
   State<Calendar> createState() => _CalendarState();
@@ -21,16 +27,80 @@ class _CalendarState extends State<Calendar> {
   int currentMonth = DateTime.now().month - 1;
   final ScrollController _scrollController = ScrollController();
 
+  // เพิ่มตัวแปรเพื่อเก็บวันที่มี task
+  Map<DateTime, bool> _dateHasTask = {};
+  bool _isLoadingTasks = true;
+
   @override
   void initState() {
     super.initState();
     monthsWithDays = getMonthsWithDays(currentYear);
     _selectedDate = widget.selectedDate ?? DateTime.now();
 
+    // โหลดวันที่มี task
+    _loadDatesWithTasks();
+
     // ทำการเลื่อนไปที่วันที่ต้องการหลังจาก widget ถูกสร้าง
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToTargetDay();
     });
+  }
+
+  // เพิ่มเมธอดเพื่อโหลดวันที่มี task
+  Future<void> _loadDatesWithTasks() async {
+    setState(() {
+      _isLoadingTasks = true;
+    });
+
+    try {
+      // คำนวณขอบเขตวันแรกและวันสุดท้ายของเดือน
+      DateTime firstDayOfMonth = DateTime(currentYear, currentMonth + 1, 1);
+      int daysInMonth = monthsWithDays[currentMonth]['days'];
+      DateTime lastDayOfMonth = DateTime(
+        currentYear,
+        currentMonth + 1,
+        daysInMonth,
+      );
+
+      // ดึงข้อมูล tasks จาก Firestore
+      List<QueryDocumentSnapshot> tasks = await _taskService
+          .getTasksInDateRange(
+            firstDayOfMonth,
+            lastDayOfMonth,
+            projectId: widget.projectId,
+          );
+
+      Map<DateTime, bool> tempDateHasTask = {};
+
+      // สำหรับแต่ละ task, เพิ่มวันที่ลงใน Map
+      for (var task in tasks) {
+        var data = task.data() as Map<String, dynamic>;
+
+        // วันที่สิ้นสุดของ task
+        if (data.containsKey('endTask') && data['endTask'] != null) {
+          Timestamp endTimestamp = data['endTask'] as Timestamp;
+          DateTime endDate = endTimestamp.toDate();
+
+          // นำเฉพาะวันที่ (ไม่รวมเวลา)
+          DateTime dateOnly = DateTime(
+            endDate.year,
+            endDate.month,
+            endDate.day,
+          );
+          tempDateHasTask[dateOnly] = true;
+        }
+      }
+
+      setState(() {
+        _dateHasTask = tempDateHasTask;
+        _isLoadingTasks = false;
+      });
+    } catch (e) {
+      print('Error loading tasks for calendar: $e');
+      setState(() {
+        _isLoadingTasks = false;
+      });
+    }
   }
 
   @override
@@ -88,10 +158,22 @@ class _CalendarState extends State<Calendar> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      scrollDirection: Axis.horizontal,
-      child: buildCard(monthsWithDays),
+    return Column(
+      children: [
+        if (_isLoadingTasks)
+          const SizedBox(
+            height: 4,
+            child: LinearProgressIndicator(
+              backgroundColor: Colors.grey,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+            ),
+          ),
+        SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: buildCard(monthsWithDays),
+        ),
+      ],
     );
   }
 
@@ -120,6 +202,10 @@ class _CalendarState extends State<Calendar> {
             date.month == DateTime.now().month &&
             date.year == DateTime.now().year;
 
+        // เช็คว่าวันนี้มี task หรือไม่
+        bool hasTask =
+            _dateHasTask[DateTime(date.year, date.month, date.day)] ?? false;
+
         final dayName = DateFormat(
           'E',
         ).format(date).toUpperCase().substring(0, 3);
@@ -143,6 +229,7 @@ class _CalendarState extends State<Calendar> {
               isPast,
               isYesterday,
               isSelected,
+              hasTask, // ส่งค่า hasTask ไปยัง cardDate
             ),
           ),
         );
@@ -157,6 +244,7 @@ class _CalendarState extends State<Calendar> {
     bool isPast,
     bool isYesterday,
     bool isSelected,
+    bool hasTask, // รับค่า hasTask
   ) {
     // Determine card color based on date status
     Color cardColor;
@@ -218,12 +306,22 @@ class _CalendarState extends State<Calendar> {
                 ),
               ),
             ),
+            const SizedBox(height: 4),
             if (isToday || isSelected)
               Container(
                 width: 5,
                 height: 5,
                 decoration: const BoxDecoration(
                   color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+              )
+            else if (hasTask)
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Colors.amber,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -251,4 +349,38 @@ List<Map<String, dynamic>> getMonthsWithDays(int year) {
     {'month': 'November', 'days': 30},
     {'month': 'December', 'days': 31},
   ];
+}
+
+// เพิ่มเมธอดใน FirestoreTaskService สำหรับดึงข้อมูล tasks ในช่วงวันที่
+extension TaskServiceExtension on FirestoreTaskService {
+  Future<List<QueryDocumentSnapshot>> getTasksInDateRange(
+    DateTime startDate,
+    DateTime endDate, {
+    String? projectId,
+  }) async {
+    try {
+      // แปลงเป็น Timestamp
+      Timestamp startTimestamp = Timestamp.fromDate(startDate);
+      Timestamp endTimestamp = Timestamp.fromDate(endDate);
+
+      Query query = FirebaseFirestore.instance
+          .collection('tasks')
+          .where('endTask', isGreaterThanOrEqualTo: startTimestamp)
+          .where('endTask', isLessThanOrEqualTo: endTimestamp);
+
+      // ถ้ามี projectId ให้กรองเพิ่ม
+      if (projectId != null) {
+        // ในกรณีนี้ต้องมีการปรับวิธีการคิวรี่ เพราะ Firestore ไม่สามารถทำ where ซ้อนได้
+        // ตรงนี้ต้องออกแบบตามโครงสร้างข้อมูลจริงของคุณ
+        // สมมติว่า tasks มีฟิลด์ projectId
+        query = query.where('projectId', isEqualTo: projectId);
+      }
+
+      QuerySnapshot querySnapshot = await query.get();
+      return querySnapshot.docs;
+    } catch (e) {
+      print('Error getting tasks in date range: $e');
+      return [];
+    }
+  }
 }

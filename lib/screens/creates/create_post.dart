@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_post.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/services/file_attachment_service.dart';
@@ -24,6 +26,8 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
   final TextEditingController _postController = TextEditingController();
   final FirestorePostService _postService = FirestorePostService();
   final User? user = FirebaseAuth.instance.currentUser;
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
 
   bool _isSubmitting = false;
 
@@ -189,6 +193,32 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
             ),
           );
         });
+        final departmentDoc =
+            await FirebaseFirestore.instance
+                .collection('departments')
+                .doc(widget.departmentId)
+                .get();
+
+        if (departmentDoc.exists) {
+          final deptData = departmentDoc.data() as Map<String, dynamic>;
+          final String projectId = deptData['projectId'] ?? '';
+          final String postId =
+              FirebaseFirestore.instance.collection('posts').doc().id;
+          // Send notification to all department members
+          await _notificationService.sendNotificationToDepartmentMembers(
+            departmentId: widget.departmentId,
+            type: 'post_created',
+            message:
+                '${user?.displayName ?? 'A team member'} created a new post: ${_titleController.text}',
+            additionalData: {
+              'postId':
+                  postId, // Assuming you have this from the returned document ID
+              'postTitle': _titleController.text,
+              'creatorName': user?.displayName ?? 'A team member',
+              'projectId': projectId,
+            },
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

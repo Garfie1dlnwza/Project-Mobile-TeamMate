@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/utils/date.dart';
 import 'package:teammate/services/file_attachment_service.dart';
 import 'package:teammate/widgets/common/file/attachment_picker_widget.dart';
@@ -25,6 +26,8 @@ class TaskDetailsAdminPage extends StatefulWidget {
 
 class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
   bool isLoading = false;
+  final FirestoreNotificationService _notificationService = FirestoreNotificationService();
+  
   Map<String, dynamic>? submissionData;
   String? submittingUserName;
   String? submittingUserEmail;

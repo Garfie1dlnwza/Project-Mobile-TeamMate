@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/services.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/services/file_attachment_service.dart';
 
@@ -30,7 +31,8 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   // Controllers
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
   // Date and Time
   DateTime? _dueDate;
   bool _isCreating = false;
@@ -213,6 +215,42 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
         // Show success and vibrate
         HapticFeedback.mediumImpact();
         _showSuccessSnackBar('Task created successfully');
+        final departmentDoc =
+            await firestore
+                .collection('departments')
+                .doc(widget.departmentId)
+                .get();
+
+        if (departmentDoc.exists) {
+          final Map<String, dynamic> departmentData =
+              departmentDoc.data() as Map<String, dynamic>;
+          final List<dynamic> adminIds = departmentData['admins'] ?? [];
+          final List<dynamic> userIds = departmentData['users'] ?? [];
+
+          // Combine both lists and make unique
+          final List<String> memberIds =
+              [
+                ...adminIds,
+                ...userIds,
+              ].map((id) => id.toString()).toSet().toList();
+
+          // Get creator name
+          final String creatorName =
+              FirebaseAuth.instance.currentUser?.displayName ?? 'A team member';
+
+          // Send notification to each member except the creator
+          for (final memberId in memberIds) {
+            if (memberId != currentUser.uid) {
+              await _notificationService.sendTaskCreatedNotification(
+                userId: memberId,
+                taskId: taskId,
+                taskTitle: _titleController.text.trim(),
+                creatorName: creatorName,
+                projectId: widget.projectId,
+              );
+            }
+          }
+        }
 
         // Navigate back with delay for snackbar visibility
         Future.delayed(const Duration(milliseconds: 1500), () {

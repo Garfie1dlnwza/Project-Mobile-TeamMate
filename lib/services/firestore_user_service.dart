@@ -28,9 +28,26 @@ class FirestoreUserService {
         'phone': phoneNumber,
         'imageURL': '',
         'lastLogin': DateTime.now(),
+        'hasUnreadNotifications':
+            false, // เพิ่มฟิลด์เพื่อติดตามการแจ้งเตือนที่ยังไม่ได้อ่าน
       }, SetOptions(merge: true));
     } catch (e) {
       print("Error creating or updating user: $e");
+      rethrow;
+    }
+  }
+
+  // อัปเดตสถานะการแจ้งเตือนที่ยังไม่ได้อ่าน
+  Future<void> updateUnreadNotificationStatus(
+    String userId,
+    bool hasUnread,
+  ) async {
+    try {
+      await _usersCollection.doc(userId).update({
+        'hasUnreadNotifications': hasUnread,
+      });
+    } catch (e) {
+      print("Error updating unread notification status: $e");
       rethrow;
     }
   }
@@ -148,5 +165,35 @@ class FirestoreUserService {
       print("Error retrieving user ID by email: $e");
       return null;
     }
+  }
+
+  // ดึงรายการผู้ใช้ที่มี notiId
+  Future<List<Map<String, dynamic>>> getUsersWithNotiId() async {
+    try {
+      QuerySnapshot snapshot =
+          await _usersCollection.where('notiId', isNull: false).get();
+
+      return snapshot.docs.map((doc) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return {
+          'uid': doc.id,
+          'name': data['name'],
+          'email': data['email'],
+          'notiId': data['notiId'],
+        };
+      }).toList();
+    } catch (e) {
+      print("Error getting users with notification ID: $e");
+      return [];
+    }
+  }
+
+  // ติดตามการเปลี่ยนแปลงของสถานะการแจ้งเตือนที่ยังไม่ได้อ่าน
+  Stream<bool> getUserUnreadNotificationStatus(String userId) {
+    return _usersCollection.doc(userId).snapshots().map((snapshot) {
+      if (!snapshot.exists) return false;
+      Map<String, dynamic>? data = snapshot.data() as Map<String, dynamic>?;
+      return data?['hasUnreadNotifications'] ?? false;
+    });
   }
 }

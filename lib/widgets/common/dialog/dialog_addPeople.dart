@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/theme/app_colors.dart';
-
 
 class AddPeopleDialog extends StatefulWidget {
   final String title;
@@ -29,16 +29,21 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
   final FirestoreProjectService _projectService = FirestoreProjectService();
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService(); // เพิ่มบริการแจ้งเตือน
 
   String? _currentUserId;
   bool _isLoading = false;
   DocumentSnapshot? _departmentData;
+  String? _departmentName;
+  String? _projectName;
 
   @override
   void initState() {
     super.initState();
     _currentUserId = FirebaseAuth.instance.currentUser?.uid;
     _loadDepartmentData();
+    _loadProjectData();
   }
 
   Future<void> _loadDepartmentData() async {
@@ -46,12 +51,41 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
       _departmentData = await _departmentService.getDepartmentById(
         widget.departmentId,
       );
+
+      // เก็บชื่อแผนก
+      if (_departmentData != null && _departmentData!.exists) {
+        final Map<String, dynamic> data =
+            _departmentData!.data() as Map<String, dynamic>;
+        setState(() {
+          _departmentName = data['name'];
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading department data: $e')),
         );
       }
+    }
+  }
+
+  // เพิ่มเมธอดใหม่: โหลดข้อมูลโปรเจค
+  Future<void> _loadProjectData() async {
+    try {
+      final projectDoc =
+          await FirebaseFirestore.instance
+              .collection('projects')
+              .doc(widget.projectId)
+              .get();
+
+      if (projectDoc.exists) {
+        final projectData = projectDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _projectName = projectData['name'];
+        });
+      }
+    } catch (e) {
+      print('Error loading project data: $e');
     }
   }
 
@@ -77,6 +111,9 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
             const SnackBar(content: Text('No user found with this email')),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -99,6 +136,9 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
             ),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
       print('departmentData: $_departmentData');
@@ -111,6 +151,9 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
             const SnackBar(content: Text('This user is already in admins')),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -124,6 +167,9 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
             ),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -136,9 +182,15 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
       // Add the Project to User
       await _userService.addProjectToUser(widget.projectId, userId);
 
+      // ส่งการแจ้งเตือนให้ผู้ใช้ที่ถูกเพิ่ม
+      await _sendNotificationsToAddedUser(userId);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User added successfully')),
+          const SnackBar(
+            content: Text('User added successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
 
         _emailController.clear();
@@ -156,6 +208,44 @@ class _AddPeopleDialogState extends State<AddPeopleDialog> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // เมธอดใหม่: ส่งการแจ้งเตือนให้ผู้ใช้ที่ถูกเพิ่ม
+  Future<void> _sendNotificationsToAddedUser(String userId) async {
+    try {
+      // รับชื่อผู้ใช้ปัจจุบัน (ผู้เพิ่ม)
+      final String inviterName =
+          FirebaseAuth.instance.currentUser?.displayName ?? 'A team member';
+
+      // ส่งการแจ้งเตือนเชิญเข้าร่วมโปรเจค
+      await _notificationService.sendProjectInvitation(
+        userId: userId,
+        projectId: widget.projectId,
+        projectName: _projectName ?? 'Project',
+        inviterName: inviterName,
+      );
+
+      // ส่งการแจ้งเตือนเกี่ยวกับการเพิ่มเข้าแผนก
+      await _notificationService.createNotification(
+        userId: userId,
+        type: 'department_added',
+        message:
+            '$inviterName added you to ${_departmentName ?? 'a department'} in ${_projectName ?? 'a project'}',
+        additionalData: {
+          'projectId': widget.projectId,
+          'projectName': _projectName,
+          'departmentId': widget.departmentId,
+          'departmentName': _departmentName,
+          'inviterId': _currentUserId,
+          'inviterName': inviterName,
+        },
+      );
+
+      print('Notifications sent to added user successfully');
+    } catch (e) {
+      print('Error sending notifications to added user: $e');
+      // ไม่ throw exception เพื่อไม่ให้กระทบกับการทำงานหลัก
     }
   }
 

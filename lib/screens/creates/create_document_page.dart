@@ -1,11 +1,13 @@
 import 'dart:typed_data';
 import 'dart:ui';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/services/file_attachment_service.dart';
 import 'package:teammate/widgets/common/file/file_attachment_widget%20.dart';
@@ -29,6 +31,8 @@ class CreateDocumentPage extends StatefulWidget {
 class _CreateDocumentPageState extends State<CreateDocumentPage> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService();
 
   // For attachments
   List<FileAttachment> _attachments = [];
@@ -315,7 +319,31 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
         _isUploading = false;
         _isLoading = false;
       });
+      final departmentDoc =
+          await _firestore
+              .collection('projects')
+              .doc(widget.projectId)
+              .collection('departments')
+              .doc(widget.departmentId)
+              .get();
 
+      if (departmentDoc.exists) {
+        // Send notification to all department members
+        await _notificationService.sendNotificationToDepartmentMembers(
+          departmentId: widget.departmentId,
+          type: 'document_shared',
+          message:
+              '${FirebaseAuth.instance.currentUser?.displayName ?? 'A team member'} shared a new document: ${_titleController.text}',
+          additionalData: {
+            'documentId': docRef.id,
+            'documentTitle': _titleController.text,
+            'sharerName':
+                FirebaseAuth.instance.currentUser?.displayName ??
+                'A team member',
+            'projectId': widget.projectId,
+          },
+        );
+      }
       _showSuccessSnackBar('Document created successfully!');
       Navigator.pop(context, docRef.id);
     } catch (e) {

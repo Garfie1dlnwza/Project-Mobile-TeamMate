@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:teammate/services/firestore_department_service.dart';
+import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_user_service.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
@@ -20,6 +22,8 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
   final FirestoreUserService _userService = FirestoreUserService();
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
+  final FirestoreNotificationService _notificationService =
+      FirestoreNotificationService(); // เพิ่มบริการแจ้งเตือน
 
   List<Map<String, dynamic>> _departments = [];
   String? _selectedDepartmentId;
@@ -98,6 +102,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
             ),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -117,6 +124,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
             ),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -130,6 +140,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
             ),
           );
         }
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -139,6 +152,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
       );
 
       await _userService.addProjectToUser(departmentData['projectId'], userId);
+
+      // ส่งการแจ้งเตือนให้กับผู้ใช้ที่ถูกแต่งตั้งเป็นแอดมิน
+      await _sendAdminAssignmentNotification(userId, departmentData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -172,6 +188,62 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  // เมธอดใหม่: ส่งการแจ้งเตือนการแต่งตั้งแอดมิน
+  Future<void> _sendAdminAssignmentNotification(
+    String userId,
+    Map<String, dynamic> departmentData,
+  ) async {
+    try {
+      // รับชื่อผู้ใช้ปัจจุบัน (ผู้ที่แต่งตั้งแอดมิน)
+      final String assignerName =
+          FirebaseAuth.instance.currentUser?.displayName ?? 'Project Head';
+
+      // รับชื่อแผนก
+      final String departmentName = departmentData['name'] ?? 'Department';
+
+      // รับข้อมูลโปรเจค
+      String projectName = 'Project';
+      try {
+        final projectDoc =
+            await FirebaseFirestore.instance
+                .collection('projects')
+                .doc(departmentData['projectId'])
+                .get();
+
+        if (projectDoc.exists) {
+          final projectData = projectDoc.data() as Map<String, dynamic>;
+          projectName = projectData['name'] ?? 'Project';
+        }
+      } catch (e) {
+        print('Error retrieving project name: $e');
+      }
+
+      // สร้างข้อความการแจ้งเตือน
+      final String message =
+          '$assignerName appointed you as an admin of the $departmentName department in $projectName';
+
+      // ส่งการแจ้งเตือน
+      await _notificationService.createNotification(
+        userId: userId,
+        type: 'admin_role_assigned',
+        message: message,
+        additionalData: {
+          'departmentId': _selectedDepartmentId,
+          'departmentName': departmentName,
+          'projectId': departmentData['projectId'],
+          'projectName': projectName,
+          'assignedBy': FirebaseAuth.instance.currentUser?.uid,
+          'assignerName': assignerName,
+        },
+      );
+
+      print('Admin assignment notification sent successfully');
+    } catch (e) {
+      print('Error sending admin assignment notification: $e');
+      // ไม่ throw exception เพื่อไม่ให้กระทบกับการทำงานหลัก
     }
   }
 
