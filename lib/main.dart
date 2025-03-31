@@ -7,7 +7,6 @@ import 'package:teammate/screens/settings/changepassword_page.dart';
 import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/screens/register_page.dart';
 import 'package:teammate/screens/settings/edit_name.dart';
-import 'package:teammate/screens/myworks/work_page2.dart';
 import 'package:teammate/widgets/common/navbar.dart';
 import 'firebase_options.dart';
 import 'package:hive_flutter/hive_flutter.dart';

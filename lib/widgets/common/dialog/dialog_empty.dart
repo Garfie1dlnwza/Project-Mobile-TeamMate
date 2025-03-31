@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:teammate/widgets/common/dialog/dialog_addPeople.dart';
 
 class EmptyState extends StatelessWidget {
   final String message;

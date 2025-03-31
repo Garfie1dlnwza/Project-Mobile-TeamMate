@@ -22,7 +22,7 @@ class ProjectCard extends StatelessWidget {
   double _calculateProgress() {
     // Check if tasks exists and is not empty
     if (data['tasks'] == null ||
-        !(data['tasks'] is List) ||
+        data['tasks'] is! List ||
         (data['tasks'] as List).isEmpty) {
       return 0.0;
     }
@@ -102,7 +102,7 @@ class ProjectCard extends StatelessWidget {
 
   // Get task count properly
   String _getTaskCountText() {
-    if (data['tasks'] == null || !(data['tasks'] is List)) {
+    if (data['tasks'] == null || data['tasks'] is! List) {
       return 'No tasks';
     }
 

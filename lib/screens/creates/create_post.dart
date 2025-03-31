@@ -32,9 +32,9 @@ class _CreatePostState extends State<CreatePost> with TickerProviderStateMixin {
   bool _isSubmitting = false;
 
   // For file attachments
-  List<FileAttachment> _attachments = [];
-  List<FileAttachment> _uploadingAttachments = [];
-  Map<String, double> _uploadProgress = {};
+  final List<FileAttachment> _attachments = [];
+  final List<FileAttachment> _uploadingAttachments = [];
+  final Map<String, double> _uploadProgress = {};
 
   // Animation controllers
   late AnimationController _animationController;

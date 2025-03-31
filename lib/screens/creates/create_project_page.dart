@@ -5,7 +5,6 @@ import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/services/firestore_user_service.dart';
-import 'package:uuid/uuid.dart';
 // Import the WorkPageThree
 
 class CreateProjectPage extends StatefulWidget {

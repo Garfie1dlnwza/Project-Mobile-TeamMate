@@ -38,9 +38,9 @@ class _CreateTaskPageState extends State<CreateTaskPage> {
   bool _isCreating = false;
 
   // Attachment handling
-  List<FileAttachment> _attachments = [];
-  List<FileAttachment> _uploadingAttachments = [];
-  Map<String, double> _uploadProgress = {};
+  final List<FileAttachment> _attachments = [];
+  final List<FileAttachment> _uploadingAttachments = [];
+  final Map<String, double> _uploadProgress = {};
 
   void _selectDueDateTime() async {
     // Date selection

@@ -9,11 +9,11 @@ class OkReactionButton extends StatefulWidget {
   final Color themeColor;
 
   const OkReactionButton({
-    Key? key,
+    super.key,
     required this.contentId,
     required this.contentType,
     required this.themeColor,
-  }) : super(key: key);
+  });
 
   @override
   State<OkReactionButton> createState() => _OkReactionButtonState();

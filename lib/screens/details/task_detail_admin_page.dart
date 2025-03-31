@@ -14,11 +14,11 @@ class TaskDetailsAdminPage extends StatefulWidget {
   final bool isAdminOrHead;
 
   const TaskDetailsAdminPage({
-    Key? key,
+    super.key,
     required this.data,
     required this.themeColor,
     required this.isAdminOrHead,
-  }) : super(key: key);
+  });
 
   @override
   State<TaskDetailsAdminPage> createState() => _TaskDetailsAdminPageState();
@@ -38,8 +38,8 @@ class _TaskDetailsAdminPageState extends State<TaskDetailsAdminPage> {
 
   // For new attachment uploads
   List<FileAttachment> _pendingAttachments = [];
-  List<FileAttachment> _uploadingAttachments = [];
-  Map<String, double> _uploadProgress = {};
+  final List<FileAttachment> _uploadingAttachments = [];
+  final Map<String, double> _uploadProgress = {};
   bool _canAddAttachments = false;
 
   @override

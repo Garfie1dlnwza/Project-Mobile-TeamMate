@@ -583,7 +583,7 @@ class FirestoreNotificationService {
 
       // ส่งการแจ้งเตือนให้กับสมาชิกทุกคน (ยกเว้นผู้ใช้ปัจจุบัน)
       final String? currentUserId = _auth.currentUser?.uid;
-      final String? senderName =
+      final String senderName =
           _auth.currentUser?.displayName ?? 'A team member';
 
       for (String memberId in memberIds) {
@@ -664,7 +664,7 @@ class FirestoreNotificationService {
 
       // ส่งการแจ้งเตือนให้กับสมาชิกทุกคน (ยกเว้นผู้ใช้ปัจจุบัน)
       final String? currentUserId = _auth.currentUser?.uid;
-      final String? senderName =
+      final String senderName =
           _auth.currentUser?.displayName ?? 'A team member';
 
       for (String memberId in memberIds) {

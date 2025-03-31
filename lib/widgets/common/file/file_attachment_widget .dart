@@ -11,12 +11,12 @@ class FileAttachmentWidget extends StatelessWidget {
   final Color themeColor;
 
   const FileAttachmentWidget({
-    Key? key,
+    super.key,
     required this.attachment,
     this.onRemove,
     this.showRemoveOption = true,
     this.themeColor = const Color(0xFF424242), // Default to Colors.grey[800]
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

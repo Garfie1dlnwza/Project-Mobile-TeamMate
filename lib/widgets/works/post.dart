@@ -22,7 +22,7 @@ class _PostContentState extends State<PostContent> {
   bool _isExpanded = false;
   bool _showComments = false;
   final FirestoreUserService _userService = FirestoreUserService();
-  List<FileAttachment> _attachments = [];
+  final List<FileAttachment> _attachments = [];
   bool _loadingAttachments = false;
   static const int _maxLines = 3;
 

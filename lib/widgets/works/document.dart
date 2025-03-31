@@ -9,17 +9,17 @@ class DocumentContent extends StatefulWidget {
   final Color themeColor;
 
   const DocumentContent({
-    Key? key,
+    super.key,
     required this.data,
     required this.themeColor,
-  }) : super(key: key);
+  });
 
   @override
   State<DocumentContent> createState() => _DocumentContentState();
 }
 
 class _DocumentContentState extends State<DocumentContent> {
-  List<FileAttachment> _attachments = [];
+  final List<FileAttachment> _attachments = [];
   bool _loadingAttachments = false;
   bool _isExpanded = false;
   static const int _maxLines = 3;

@@ -6,8 +6,6 @@ import 'package:teammate/screens/details/task_detail_admin_page.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/services/firestore_task_service.dart';
-import 'package:teammate/services/firestore_department_service.dart';
-import 'package:teammate/services/firestore_project_service.dart';
 import 'package:teammate/utils/date.dart';
 
 enum TaskFilter { all, ongoing, completed, overdue, urgent }

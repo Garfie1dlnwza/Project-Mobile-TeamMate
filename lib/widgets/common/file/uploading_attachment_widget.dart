@@ -8,12 +8,12 @@ class UploadingAttachmentWidget extends StatelessWidget {
   final Color themeColor;
 
   const UploadingAttachmentWidget({
-    Key? key,
+    super.key,
     required this.attachment,
     required this.progress,
     this.onCancel,
     this.themeColor = const Color(0xFF424242), // Default to Colors.grey[800]
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:teammate/widgets/auth/auth_button.dart';
-import 'package:teammate/widgets/common/header_bar.dart';
 
 class EditNamePage extends StatefulWidget {
   const EditNamePage({super.key});

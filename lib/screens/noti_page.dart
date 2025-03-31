@@ -434,10 +434,10 @@ class _NotiPageState extends State<NotiPage> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadNotifications,
-              child: const Text('Retry'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
               ),
+              child: const Text('Retry'),
             ),
           ],
         ),

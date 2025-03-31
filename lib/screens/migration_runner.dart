@@ -4,7 +4,7 @@ import 'package:teammate/services/firestore_dataMigration.dart';
 class MigrationRunner extends StatefulWidget {
   final Widget child;
 
-  const MigrationRunner({Key? key, required this.child}) : super(key: key);
+  const MigrationRunner({super.key, required this.child});
 
   @override
   State<MigrationRunner> createState() => _MigrationRunnerState();

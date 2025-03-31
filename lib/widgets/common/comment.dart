@@ -8,11 +8,11 @@ class CommentWidget extends StatefulWidget {
   final Color themeColor;
 
   const CommentWidget({
-    Key? key,
+    super.key,
     required this.contentId,
     required this.contentType,
     required this.themeColor,
-  }) : super(key: key);
+  });
 
   @override
   State<CommentWidget> createState() => _CommentWidgetState();

@@ -35,9 +35,9 @@ class _CreateDocumentPageState extends State<CreateDocumentPage> {
       FirestoreNotificationService();
 
   // For attachments
-  List<FileAttachment> _attachments = [];
-  List<FileAttachment> _uploadingAttachments = [];
-  Map<String, double> _uploadProgress = {};
+  final List<FileAttachment> _attachments = [];
+  final List<FileAttachment> _uploadingAttachments = [];
+  final Map<String, double> _uploadProgress = {};
 
   bool _isLoading = false;
   bool _isUploading = false;

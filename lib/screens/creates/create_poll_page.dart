@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_polls/flutter_polls.dart';
 import 'package:teammate/services/firestore_noti_service.dart';
 import 'package:teammate/services/firestore_poll_service.dart';
 import 'package:teammate/theme/app_colors.dart';

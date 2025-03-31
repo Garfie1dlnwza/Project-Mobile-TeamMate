@@ -77,7 +77,7 @@ class NotificationTabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final FirestoreUserService _userService = FirestoreUserService();
+    final FirestoreUserService userService = FirestoreUserService();
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -93,7 +93,7 @@ class NotificationTabItem extends StatelessWidget {
     }
 
     return StreamBuilder<bool>(
-      stream: _userService.getUserUnreadNotificationStatus(user.uid),
+      stream: userService.getUserUnreadNotificationStatus(user.uid),
       builder: (context, snapshot) {
         final bool hasUnread = snapshot.data ?? false;
 

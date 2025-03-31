@@ -11,10 +11,10 @@ class DailySchedule extends StatefulWidget {
   final Color themeColor;
 
   const DailySchedule({
-    Key? key,
+    super.key,
     required this.selectedDate,
     this.themeColor = Colors.blue,
-  }) : super(key: key);
+  });
 
   @override
   State<DailySchedule> createState() => _DailyScheduleState();
@@ -26,7 +26,7 @@ class _DailyScheduleState extends State<DailySchedule> {
   bool _isLoading = true;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
-  int _currentHour = DateTime.now().hour;
+  final int _currentHour = DateTime.now().hour;
 
   @override
   void initState() {
@@ -146,7 +146,7 @@ class _DailyScheduleState extends State<DailySchedule> {
                   ),
                   const Spacer(),
                   Text(
-                    _tasks.length > 0 ? '${_tasks.length} tasks' : 'No tasks',
+                    _tasks.isNotEmpty ? '${_tasks.length} tasks' : 'No tasks',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
@@ -258,12 +258,12 @@ class TimeSlotWidget extends StatelessWidget {
   final bool isCurrentHour;
 
   const TimeSlotWidget({
-    Key? key,
+    super.key,
     required this.time,
     required this.tasks,
     required this.themeColor,
     this.isCurrentHour = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -346,8 +346,7 @@ class TaskEventCard extends StatelessWidget {
   final Map<String, dynamic> task;
   final Color themeColor;
 
-  const TaskEventCard({Key? key, required this.task, required this.themeColor})
-    : super(key: key);
+  const TaskEventCard({super.key, required this.task, required this.themeColor});
 
   Color _getEventColor(Map<String, dynamic> task) {
     final bool isSubmitted = task['isSubmit'] ?? false;

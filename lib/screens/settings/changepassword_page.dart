@@ -4,7 +4,6 @@ import 'package:teammate/screens/login_page.dart';
 import 'package:teammate/theme/app_colors.dart';
 import 'package:teammate/theme/app_text_styles.dart';
 import 'package:teammate/utils/validators.dart';
-import 'package:teammate/widgets/common/navbar.dart';
 import 'package:teammate/widgets/auth/auth_button.dart';
 import 'package:teammate/widgets/auth/auth_text_field.dart';
 
