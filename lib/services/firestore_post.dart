@@ -48,10 +48,37 @@ class FirestorePostService {
     }
   }
 
+  // Get all posts for a department (for admins and head)
   Stream<QuerySnapshot> getPostsForDepartmentId(String departmentId) {
     return _firestore
         .collection('posts')
         .where('departmentId', isEqualTo: departmentId)
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  // Get posts that a specific user is allowed to see
+  Stream<QuerySnapshot> getVisiblePostsForUser({
+    required String departmentId,
+    String? userId,
+  }) {
+    // For non-authenticated users or missing userId, return empty stream
+    if (userId == null) {
+      return Stream.empty();
+    }
+
+    // Query posts that:
+    // 1. Belong to this department AND
+    // 2. Were created by this user OR are public
+    return _firestore
+        .collection('posts')
+        .where('departmentId', isEqualTo: departmentId)
+        .where(
+          Filter.or(
+            Filter('creator', isEqualTo: userId),
+            Filter('visibility', isEqualTo: 'public'),
+          ),
+        )
         .orderBy('createdAt', descending: true)
         .snapshots();
   }

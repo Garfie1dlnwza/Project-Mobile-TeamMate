@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:teammate/screens/creates/create_post.dart';
 import 'package:teammate/services/firestore_department_service.dart';
-import 'package:teammate/services/firestore_document_service.dart'; // เพิ่ม service สำหรับเอกสาร
+import 'package:teammate/services/firestore_document_service.dart';
 import 'package:teammate/services/firestore_poll_service.dart';
 import 'package:teammate/services/firestore_post.dart';
 import 'package:teammate/services/firestore_project_service.dart';
@@ -33,8 +34,8 @@ class _PostPageState extends State<PostPage>
   final FirestorePollService _pollService = FirestorePollService();
   final FirestoreTaskService _taskService = FirestoreTaskService();
   final FirestorePostService _postService = FirestorePostService();
-  final FirestoreDocumentService _documentService =
-      FirestoreDocumentService(); // เพิ่ม service สำหรับเอกสาร
+  final FirestoreDocumentService _documentService = FirestoreDocumentService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String _headName = '';
   String _departmentName = '';
@@ -44,10 +45,14 @@ class _PostPageState extends State<PostPage>
   List<Map<String, dynamic>> listShowWork = [];
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
+  bool _isProjectHead = false;
+  bool _isAdmin = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
+    _currentUserId = _auth.currentUser?.uid;
     _loadData();
     _loadCombinedFeed();
 
@@ -66,6 +71,36 @@ class _PostPageState extends State<PostPage>
     super.dispose();
   }
 
+  Future<void> _checkUserRole() async {
+    try {
+      if (_currentUserId == null) return;
+
+      // Check if user is project head
+      final projectDoc = await _projectService.getProjectById(widget.projectId);
+      if (projectDoc.exists) {
+        final String? headId = projectDoc.get('headId');
+        setState(() {
+          _isProjectHead = headId == _currentUserId;
+        });
+      }
+
+      // Check if user is admin
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_currentUserId)
+              .get();
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        setState(() {
+          _isAdmin = userData?['role'] == 'admin';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking user role: $e');
+    }
+  }
+
   Future<void> _loadCombinedFeed() async {
     try {
       setState(() {
@@ -78,6 +113,7 @@ class _PostPageState extends State<PostPage>
         _updateCombinedFeed(tasksSnapshot, 'task');
       });
 
+      // All users (head, admin, or regular users) see all posts from the department
       _postService.getPostsForDepartmentId(widget.departmentId).listen((
         postsSnapshot,
       ) {
@@ -90,7 +126,7 @@ class _PostPageState extends State<PostPage>
         _updateCombinedFeed(pollsSnapshot, 'poll');
       });
 
-      // เพิ่มการโหลดเอกสาร
+      // All users (head, admin, or regular users) see all documents from the department
       _documentService.getDocumentsByDepartmentId(widget.departmentId).listen((
         documentsSnapshot,
       ) {
@@ -106,7 +142,7 @@ class _PostPageState extends State<PostPage>
   }
 
   void _updateCombinedFeed(QuerySnapshot snapshot, String type) {
-    // ลบรายการเก่าที่มี type เดียวกัน
+    // Remove old items of the same type
     listShowWork.removeWhere((item) => item['type'] == type);
 
     for (var doc in snapshot.docs) {
@@ -119,7 +155,7 @@ class _PostPageState extends State<PostPage>
       });
     }
 
-    // เรียงลำดับตามเวลาล่าสุด
+    // Sort by most recent
     listShowWork.sort((a, b) {
       final Timestamp aTime = a['createdAt'] as Timestamp;
       final Timestamp bTime = b['createdAt'] as Timestamp;

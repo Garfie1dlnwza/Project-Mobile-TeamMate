@@ -138,9 +138,9 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 flutter_native_splash:
-  android: true  # ใช้ splash screen บน Android
-  ios: true  # ใช้ splash screen บน iOS
-  web: false  # ไม่ใช้ splash screen บน Web
-  background_image: assets/images/background.png  # พื้นหลังเป็นภาพ
-  image: assets/images/logo.png  # โลโก้ที่จะแสดงใน splash screen
+  android: true 
+  ios: true  
+  web: false 
+  background_image: assets/images/background.png 
+  image: assets/images/logo.png 
 
