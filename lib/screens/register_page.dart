@@ -58,9 +58,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
       final user = credential.user;
       if (user != null) {
-        // สร้าง ID สำหรับใช้ในระบบแจ้งเตือน - ใช้ Uuid
-        var uuid = Uuid();
-        String notiId = uuid.v4();
+     
 
         // สร้างชื่อเต็ม
         String fullName =
@@ -76,7 +74,6 @@ class _RegisterPageState extends State<RegisterPage> {
           user.email ?? _emailController.text.trim(),
           phoneNumber: _phoneNumberController.text.trim(),
           projectIds: [],
-          notiId: notiId,
         );
 
         // สร้างข้อความต้อนรับในแอพ (ทำเป็นการแจ้งเตือนต้อนรับ)

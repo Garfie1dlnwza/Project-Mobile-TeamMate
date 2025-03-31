@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:teammate/screens/myworks/work_page3.dart';
 import 'package:teammate/services/firestore_department_service.dart';
 import 'package:teammate/services/firestore_project_service.dart';
+import 'package:teammate/services/firestore_task_service.dart';
 
 class CardDepartments extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -17,6 +18,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
   final FirestoreDepartmentService _departmentService =
       FirestoreDepartmentService();
   final FirestoreProjectService _projectService = FirestoreProjectService();
+  final FirestoreTaskService _taskService = FirestoreTaskService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Modern accent colors for departments
@@ -96,6 +98,50 @@ class _CardDepartmentsState extends State<CardDepartments> {
     }
   }
 
+  // Calculate task progress for a department
+  Future<Map<String, dynamic>> _calculateDepartmentProgress(
+    String departmentId,
+  ) async {
+    try {
+      // Get tasks for this department
+      final tasksSnapshot =
+          await FirebaseFirestore.instance
+              .collection('tasks')
+              .where('departmentId', isEqualTo: departmentId)
+              .get();
+
+      int totalTasks = tasksSnapshot.docs.length;
+      int completedTasks = 0;
+
+      // Count completed (approved) tasks
+      for (var taskDoc in tasksSnapshot.docs) {
+        final taskData = taskDoc.data();
+        if (taskData['isApproved'] == true) {
+          completedTasks++;
+        }
+      }
+
+      // Calculate progress percentage
+      double progressPercent =
+          totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+      return {
+        'totalTasks': totalTasks,
+        'completedTasks': completedTasks,
+        'progressPercent': progressPercent,
+        'progressRatio': totalTasks > 0 ? completedTasks / totalTasks : 0.0,
+      };
+    } catch (e) {
+      print('Error calculating department progress: $e');
+      return {
+        'totalTasks': 0,
+        'completedTasks': 0,
+        'progressPercent': 0,
+        'progressRatio': 0.0,
+      };
+    }
+  }
+
   Widget _buildDepartmentCard(
     String projectId,
     String departmentId,
@@ -110,6 +156,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
 
     return Container(
       width: 220,
+      height: 240, // Increased height for progress bar
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         color: effectiveHasAccess ? Colors.grey[100] : Colors.grey[50],
@@ -254,7 +301,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
                 children: [
                   // Basic content
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -332,6 +379,89 @@ class _CardDepartmentsState extends State<CardDepartments> {
                             color: Colors.grey[500],
                           ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // NEW: Task Progress Section
+                        if (effectiveHasAccess) // Only show progress if user has access
+                          FutureBuilder<Map<String, dynamic>>(
+                            future: _calculateDepartmentProgress(departmentId),
+                            builder: (context, snapshot) {
+                              double progressRatio = 0.0;
+                              int progressPercent = 0;
+                              int totalTasks = 0;
+
+                              if (snapshot.hasData) {
+                                progressRatio = snapshot.data!['progressRatio'];
+                                progressPercent =
+                                    snapshot.data!['progressPercent'].round();
+                                totalTasks = snapshot.data!['totalTasks'];
+                              }
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Progress title with task count
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Task Progress',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                      Text(
+                                        totalTasks > 0
+                                            ? '$progressPercent%'
+                                            : 'No tasks',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: accentColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 8),
+
+                                  // Progress bar
+                                  Container(
+                                    height: 8,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 500,
+                                          ),
+                                          curve: Curves.easeInOut,
+                                          height: 8,
+                                          width:
+                                              180 *
+                                              progressRatio, // Adjust for card width
+                                          decoration: BoxDecoration(
+                                            color: accentColor,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
 
                         const Spacer(),
 
@@ -434,6 +564,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
 
     return Container(
       width: 220,
+      height: 240, // Match the new height
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -463,6 +594,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
   Widget _buildErrorCard(String error) {
     return Container(
       width: 220,
+      height: 240, // Match the new height
       margin: const EdgeInsets.only(right: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -496,7 +628,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
 
   Widget _buildEmptyState() {
     return Container(
-      height: 200,
+      height: 240, // Match the new height
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -545,7 +677,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return SizedBox(
-        height: 200,
+        height: 240, // Match the new height
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: 3, // Show 3 loading indicators
@@ -562,7 +694,7 @@ class _CardDepartmentsState extends State<CardDepartments> {
     }
 
     return SizedBox(
-      height: 200,
+      height: 240, // Match the new height
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: departmentIds.length,

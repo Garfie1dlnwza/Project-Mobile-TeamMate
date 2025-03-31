@@ -166,7 +166,8 @@ class _DocumentContentState extends State<DocumentContent> {
     }
 
     return Card(
-      color: widget.themeColor.withOpacity(0.05),
+      color: Colors.transparent,
+      shadowColor: Colors.transparent,
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,

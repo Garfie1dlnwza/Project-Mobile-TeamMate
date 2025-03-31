@@ -24,7 +24,6 @@ class FirestoreUserService {
         'name': name,
         'email': email,
         'projectIds': projectIds ?? [],
-        'notiId': notiId,
         'phone': phoneNumber,
         'imageURL': '',
         'lastLogin': DateTime.now(),
